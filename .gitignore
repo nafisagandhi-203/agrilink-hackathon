@@ -1,0 +1,38 @@
+# .NET
+Backend/bin/
+Backend/obj/
+Backend/.vs/
+Backend/*.user
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Python model artifacts
+*.joblib
+*.parquet
+
+# Node
+node_modules/
+dist/
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environment / secrets
+*.local
+.env
+.env.*
+
+# Raw eNAM datasets (large, publicly available; see AI/reports/dataset_sources.md)
+Datasets/

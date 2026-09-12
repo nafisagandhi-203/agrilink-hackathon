@@ -1,0 +1,29 @@
+{
+  "Gujarat": {
+    "Rajkot": ["Rajkot", "Gondal", "Jasdan", "Jetpur"],
+    "Ahmedabad": ["Ahmedabad", "Sanand", "Mandal", "Bavla"],
+    "Surat": ["Surat", "Bardoli", "Mahuva"],
+    "Junagadh": ["Junagadh", "Keshod", "Visavadar"],
+    "Bhavnagar": ["Bhavnagar", "Mahuva", "Talaja"]
+  },
+  "Maharashtra": {
+    "Nashik": ["Nashik", "Lasalgaon", "Pimpalgaon", "Yeola"],
+    "Pune": ["Pune", "Manchar", "Baramati", "Khed"],
+    "Nagpur": ["Nagpur", "Kalmeshwar", "Katol"],
+    "Ahmednagar": ["Ahmednagar", "Rahuri", "Shrirampur"]
+  },
+  "Madhya Pradesh": {
+    "Indore": ["Indore", "Sanwer", "Mhow"],
+    "Ujjain": ["Ujjain", "Badnagar", "Mahidpur"],
+    "Bhopal": ["Bhopal", "Berasia"]
+  },
+  "Uttar Pradesh": {
+    "Agra": ["Agra", "Fatehabad", "Achhnera"],
+    "Varanasi": ["Varanasi", "Raja Ka Talab"],
+    "Lucknow": ["Lucknow", "Malihabad"]
+  },
+  "Punjab": {
+    "Ludhiana": ["Ludhiana", "Khanna", "Jagraon"],
+    "Amritsar": ["Amritsar", "Rayya", "Majitha"]
+  }
+}
