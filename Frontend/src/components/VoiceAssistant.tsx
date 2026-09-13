@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic, X, Volume2, Sparkles, ArrowRight, Bot, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import type { Language } from '../types';
-import { apiClient } from '../services/apiClient';
 
 interface VoiceAssistantProps {
   setActiveTab: (tab: string) => void;
@@ -171,35 +170,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   };
 
   // Process voice query & determine AI text + spoken audio + confirmation dialogs
-  const processVoiceQuery = async (query: string, lang: Language) => {
-    try {
-      const aiResult = await apiClient.callAi<any>('/voice-intent', {
-        text: query,
-        language: lang
-      });
-
-      if (aiResult && aiResult.response_text) {
-        setAiResponse(aiResult.response_text);
-        speakAudioResponse(aiResult.response_text, lang);
-        setStatusState('response_ready');
-
-        if (aiResult.target_route) {
-          const tabMap: Record<string, string> = {
-            '/price-intelligence': 'farmer-ai-price',
-            '/crop-listings': 'farmer-crops',
-            '/buyers': 'farmer-buyers',
-            '/transport': 'farmer-transport',
-            '/create-listing': 'farmer-add-crop'
-          };
-          const mappedTab = tabMap[aiResult.target_route] || 'farmer-ai-price';
-          setNavTarget(mappedTab);
-        }
-        return;
-      }
-    } catch (e) {
-      console.warn('AI voice intent fallback:', e);
-    }
-
+  const processVoiceQuery = (query: string, lang: Language) => {
     const lower = query.toLowerCase();
     let responseText = '';
     let target: string | null = null;

@@ -32,19 +32,63 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Coordinate lookup helper for Leaflet mapping
   const getCoordinates = (locationName: string): [number, number] => {
-    const loc = (locationName || '').toLowerCase();
+    const loc = (locationName || '').toLowerCase().trim();
+    if (loc.includes('kolkata') || loc.includes('calcutta')) return [22.5726, 88.3639];
+    if (loc.includes('mumbai') || loc.includes('bombay')) return [19.0760, 72.8777];
+    if (loc.includes('delhi')) return [28.7041, 77.1025];
+    if (loc.includes('bengaluru') || loc.includes('bangalore')) return [12.9716, 77.5946];
+    if (loc.includes('chennai') || loc.includes('madras')) return [13.0827, 80.2707];
+    if (loc.includes('hyderabad')) return [17.3850, 78.4867];
+    if (loc.includes('pune')) return [18.5204, 73.8567];
+    if (loc.includes('nagpur')) return [21.1458, 79.0882];
+    if (loc.includes('jaipur')) return [26.9124, 75.7873];
+    if (loc.includes('lucknow')) return [26.8467, 80.9462];
+    if (loc.includes('patna')) return [25.5941, 85.1376];
+    if (loc.includes('bhopal')) return [23.2599, 77.4126];
+    if (loc.includes('indore')) return [22.7196, 75.8577];
+    if (loc.includes('kanpur')) return [26.4499, 80.3319];
+    if (loc.includes('varanasi')) return [25.3176, 82.9739];
+    if (loc.includes('guwahati')) return [26.1445, 91.7362];
+    if (loc.includes('visakhapatnam') || loc.includes('vizag')) return [17.6868, 83.2185];
+    if (loc.includes('kochi') || loc.includes('cochin')) return [9.9312, 76.2673];
+    if (loc.includes('chandigarh')) return [30.7333, 76.7794];
+    if (loc.includes('agra')) return [27.1767, 78.0081];
+    if (loc.includes('bhuj')) return [23.2420, 69.6669];
+    if (loc.includes('nadiad')) return [22.6916, 72.8634];
+    if (loc.includes('anand')) return [22.5645, 72.9289];
+    if (loc.includes('surendranagar')) return [22.7274, 71.6370];
+    if (loc.includes('morbi')) return [22.8173, 70.8372];
+    if (loc.includes('mehsana')) return [23.5880, 72.3693];
+    if (loc.includes('patan')) return [23.8493, 72.1266];
+    if (loc.includes('palanpur')) return [24.1724, 72.4346];
+    if (loc.includes('porbandar')) return [21.6417, 69.6293];
+    if (loc.includes('amreli')) return [21.6032, 71.2221];
+    if (loc.includes('bharuch')) return [21.7051, 72.9959];
+    if (loc.includes('navsari')) return [20.9500, 72.9333];
+    if (loc.includes('valsad')) return [20.5992, 72.9342];
+    if (loc.includes('godhra')) return [22.7780, 73.6143];
+    if (loc.includes('vapi')) return [20.3893, 72.9106];
+    if (loc.includes('dahod')) return [22.8347, 74.2554];
+    if (loc.includes('veraval') || loc.includes('somnath')) return [20.9042, 70.3671];
+    if (loc.includes('dwarka')) return [22.2442, 68.9685];
+    if (loc.includes('botad')) return [22.1704, 71.6687];
+    if (loc.includes('kheda')) return [22.7533, 72.6853];
     if (loc.includes('surat')) return [21.1702, 72.8311];
     if (loc.includes('vadodara') || loc.includes('baroda')) return [22.3072, 73.1812];
     if (loc.includes('junagadh')) return [21.5222, 70.4579];
     if (loc.includes('jamnagar')) return [22.4707, 70.0577];
     if (loc.includes('bhavnagar')) return [21.7645, 72.1519];
-    if (loc.includes('mumbai')) return [19.0760, 72.8777];
-    if (loc.includes('delhi')) return [28.7041, 77.1025];
     if (loc.includes('gondal')) return [21.9619, 70.7923];
     if (loc.includes('gandhinagar')) return [23.2156, 72.6369];
     if (loc.includes('naroda') || loc.includes('ahmedabad')) return [23.0225, 72.5714];
-    // Default Rajkot Farm
-    return [22.3039, 70.8022];
+    if (loc.includes('rajkot')) return [22.3039, 70.8022];
+
+    // Fallback pseudo coordinates derived from string hash offset
+    let hash = 0;
+    for (let i = 0; i < loc.length; i++) hash = loc.charCodeAt(i) + ((hash << 5) - hash);
+    const latOffset = ((Math.abs(hash) % 100) / 100) * 1.2 - 0.6;
+    const lngOffset = (((Math.abs(hash) >> 2) % 100) / 100) * 1.2 - 0.6;
+    return [22.3039 + latOffset, 70.8022 + lngOffset];
   };
 
   const pickupCoords = getCoordinates(pickupLocation);
@@ -115,38 +159,46 @@ export const MapView: React.FC<MapViewProps> = ({
       iconAnchor: [20, 20]
     });
 
-    // Add Markers to Map
+    // Add Markers to Map with PERMANENT DISTANCE TOOLTIPS
     const farmMarker = L.marker(pickupCoords, { icon: farmPickupIcon }).addTo(map);
-    farmMarker.bindPopup(`
-      <div style="font-family: sans-serif; padding: 4px;">
-        <strong style="color: #143601;">📍 Pickup Location</strong>
-        <p style="margin: 4px 0 0 0; font-size: 12px;">${pickupLocation}</p>
-      </div>
-    `);
+    farmMarker.bindTooltip(`📍 Pickup: ${pickupLocation.split(',')[0]}`, {
+      permanent: true,
+      direction: 'top',
+      offset: [0, -32],
+      className: 'map-custom-tooltip-pickup'
+    });
 
     const buyerMarker = L.marker(deliveryCoords, { icon: buyerDeliveryIcon }).addTo(map);
-    buyerMarker.bindPopup(`
-      <div style="font-family: sans-serif; padding: 4px;">
-        <strong style="color: #2563eb;">📍 Delivery Destination</strong>
-        <p style="margin: 4px 0 0 0; font-size: 12px;">${deliveryLocation}</p>
-      </div>
-    `);
+    buyerMarker.bindTooltip(`📍 Delivery: ${deliveryLocation.split(',')[0]}`, {
+      permanent: true,
+      direction: 'top',
+      offset: [0, -32],
+      className: 'map-custom-tooltip-delivery'
+    });
 
     const transMarker = L.marker(midCoords, { icon: transporterIcon }).addTo(map);
-    transMarker.bindPopup(`
-      <div style="font-family: sans-serif; padding: 4px;">
-        <strong style="color: #538d22;">🚚 Live Logistics Route</strong>
-        <p style="margin: 4px 0 0 0; font-size: 12px;">Distance: ${distanceKm} km</p>
-      </div>
-    `);
+    transMarker.bindTooltip(`🚚 Corridor: ${distanceKm} km (${eta})`, {
+      permanent: true,
+      direction: 'bottom',
+      offset: [0, 16],
+      className: 'map-custom-tooltip-corridor'
+    });
 
     // Draw Polyline Route
     const polyline = L.polyline([pickupCoords, midCoords, deliveryCoords], {
       color: '#538d22',
-      weight: 5,
-      opacity: 0.85,
-      dashArray: '8, 8'
+      weight: 6,
+      opacity: 0.9,
+      dashArray: '10, 8'
     }).addTo(map);
+
+    // Permanent Route Line Distance Badge attached directly on the Map Route line
+    polyline.bindTooltip(`🛣️ ${distanceKm} km (${eta})`, {
+      permanent: true,
+      sticky: true,
+      direction: 'center',
+      className: 'map-route-polyline-tooltip'
+    });
 
     // Fit Map Bounds dynamically
     map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
@@ -230,6 +282,25 @@ export const MapView: React.FC<MapViewProps> = ({
 
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
+        {/* Floating Live Route Badge directly on Map Canvas */}
+        {!errorMessage && (
+          <div className="absolute top-4 left-4 z-10 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-xl border border-[#e2ebd9] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#143601] text-[#aad576] flex items-center justify-center font-black text-xs shadow-2xs">
+              🚚
+            </div>
+            <div>
+              <div className="text-[10px] font-black text-[#538d22] uppercase tracking-wider">
+                Live Route Corridor
+              </div>
+              <div className="text-xs font-black text-[#143601] flex items-center gap-1.5">
+                <span>{distanceKm} km</span>
+                <span className="text-[#538d22]">•</span>
+                <span>{eta}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Map Pan & Zoom Controls */}
         <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-xl border border-[#e2ebd9] items-center">
           
@@ -294,15 +365,15 @@ export const MapView: React.FC<MapViewProps> = ({
         </div>
 
         {/* Floating Legend */}
-        <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-lg border border-[#e2ebd9] text-[11px] font-bold text-[#143601] flex flex-wrap items-center gap-3">
+        <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border border-[#e2ebd9] text-[11px] font-bold text-[#143601] flex flex-wrap items-center gap-3">
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-[#143601] inline-block" /> 📍 Pickup
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" /> 📍 Destination
           </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#538d22] inline-block" /> 🚚 Corridor
+          <span className="flex items-center gap-1 bg-[#f4f8f0] px-2 py-0.5 rounded-lg border border-[#e2ebd9]">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#538d22] inline-block" /> 🛣️ Map Route: <strong className="text-[#143601] font-black ml-1">{distanceKm} km</strong> ({eta})
           </span>
         </div>
       </div>

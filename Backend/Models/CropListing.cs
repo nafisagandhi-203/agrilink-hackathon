@@ -19,6 +19,7 @@ public class CropListing
     public string Pincode { get; set; } = string.Empty;
     public DateTime ExpectedSellingDate { get; set; }
     public decimal AskingPrice { get; set; }
+    public string? ImageUrl { get; set; }
     public CropListingStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

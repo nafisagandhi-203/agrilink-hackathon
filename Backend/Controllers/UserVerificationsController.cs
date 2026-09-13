@@ -5,14 +5,11 @@ using FluentValidation;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Data;
 using Models;
 using DTOs;
-using System.Linq;
+using Models.Enums;
 
 namespace Controllers;
 
@@ -86,16 +83,30 @@ public UserVerificationsController(ApplicationDbContext context, IValidator<Crea
             return BadRequest(DTOs.ApiResponse<object>.ErrorResponse("Validation failed", createValidationResult.Errors.Select(e => e.ErrorMessage).ToList()));
         }
 
-        var entity = new UserVerification
+        var existing = await _context.UserVerifications.FirstOrDefaultAsync(v => v.UserId == createDto.UserId);
+        UserVerification entity;
+        if (existing != null)
         {
-            UserId = createDto.UserId,
-            VerificationStatus = createDto.VerificationStatus,
-            VerifiedByUserId = createDto.VerifiedByUserId,
-            VerifiedAt = createDto.VerifiedAt,
-            Remarks = createDto.Remarks,
-        };
-        
-        _context.UserVerifications.Add(entity);
+            existing.VerificationStatus = createDto.VerificationStatus;
+            existing.VerifiedByUserId = createDto.VerifiedByUserId ?? GetCurrentAdminUserId();
+            existing.VerifiedAt = createDto.VerifiedAt ?? System.DateTime.UtcNow;
+            existing.Remarks = createDto.Remarks;
+            entity = existing;
+        }
+        else
+        {
+            entity = new UserVerification
+            {
+                UserId = createDto.UserId,
+                VerificationStatus = createDto.VerificationStatus,
+                VerifiedByUserId = createDto.VerifiedByUserId ?? GetCurrentAdminUserId(),
+                VerifiedAt = createDto.VerifiedAt ?? System.DateTime.UtcNow,
+                Remarks = createDto.Remarks,
+            };
+            _context.UserVerifications.Add(entity);
+        }
+
+        await SyncUserVerificationStatusAsync(entity.UserId, entity.VerificationStatus);
         await _context.SaveChangesAsync();
 
         var returnDto = new UserVerificationDto
@@ -126,9 +137,11 @@ public UserVerificationsController(ApplicationDbContext context, IValidator<Crea
             return NotFound(ApiResponse<object>.ErrorResponse("UserVerification not found"));
 
         entity.VerificationStatus = updateDto.VerificationStatus;
-        entity.VerifiedByUserId = updateDto.VerifiedByUserId;
-        entity.VerifiedAt = updateDto.VerifiedAt;
+        entity.VerifiedByUserId = updateDto.VerifiedByUserId ?? GetCurrentAdminUserId();
+        entity.VerifiedAt = updateDto.VerifiedAt ?? System.DateTime.UtcNow;
         entity.Remarks = updateDto.Remarks;
+
+        await SyncUserVerificationStatusAsync(entity.UserId, entity.VerificationStatus);
         
         await _context.SaveChangesAsync();
 
@@ -147,6 +160,28 @@ public UserVerificationsController(ApplicationDbContext context, IValidator<Crea
         await _context.SaveChangesAsync();
 
         return Ok(ApiResponse<object>.SuccessResponse(null, "UserVerification deleted successfully"));
+    }
+
+    private int? GetCurrentAdminUserId()
+    {
+        var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(idClaim, out var id) ? id : null;
+    }
+
+    private async Task SyncUserVerificationStatusAsync(int userId, VerificationStatus status)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        if (user == null) return;
+
+        switch (status)
+        {
+            case VerificationStatus.Approved:
+                user.IsVerified = true;
+                break;
+            case VerificationStatus.Rejected:
+                user.IsVerified = false;
+                break;
+        }
     }
 }
 

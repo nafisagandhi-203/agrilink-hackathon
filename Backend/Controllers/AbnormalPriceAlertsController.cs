@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace Controllers;
 
 [Route("api/[controller]")]
-[Authorize(Roles = "Farmer,Buyer")]
+[Authorize(Roles = "Farmer,Buyer,Admin")]
 [ApiController]
 public class AbnormalPriceAlertsController : ControllerBase
 {

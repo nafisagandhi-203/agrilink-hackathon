@@ -1,15 +1,22 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, UserRole } from '../types';
-import { mockUsers } from '../data/mockData';
 import { apiClient } from '../services/apiClient';
+
+interface LoginResponseData {
+  token: string;
+  userId: number;
+  fullName: string;
+  email: string;
+  role: string;
+}
 
 interface AuthContextType {
   user: User | null;
   role: UserRole | null;
   isAuthenticated: boolean;
-  login: (email: string, role: UserRole) => boolean;
-  register: (newUser: Partial<User>) => void;
-  demoLogin: (role: UserRole) => void;
+  login: (email: string, role?: UserRole, password?: string) => Promise<boolean>;
+  register: (newUser: Partial<User>, password?: string) => Promise<boolean>;
+  demoLogin: (role: UserRole) => Promise<void>;
   logout: () => void;
 }
 
@@ -17,7 +24,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('agripulse_user');
+    const sessionActive = sessionStorage.getItem('agripulse_session_active');
+    if (!sessionActive) {
+      localStorage.removeItem('agripulse_user');
+      sessionStorage.removeItem('agripulse_user');
+      return null;
+    }
+
+    const saved = sessionStorage.getItem('agripulse_user') || localStorage.getItem('agripulse_user');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -25,69 +39,153 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Failed to parse saved user', e);
       }
     }
-    return mockUsers[0];
+    return null;
   });
 
   useEffect(() => {
     if (user) {
+      sessionStorage.setItem('agripulse_user', JSON.stringify(user));
+      sessionStorage.setItem('agripulse_session_active', 'true');
       localStorage.setItem('agripulse_user', JSON.stringify(user));
     } else {
+      sessionStorage.removeItem('agripulse_user');
+      sessionStorage.removeItem('agripulse_session_active');
       localStorage.removeItem('agripulse_user');
     }
   }, [user]);
 
-  const login = (email: string, selectedRole: UserRole): boolean => {
-    // Attempt asynchronous backend login in background
-    apiClient.post<{ token: string; user?: any }>('/auth/login', {
-      email,
-      password: 'Password@123'
-    }).then((res) => {
-      if (res && res.token) {
-        apiClient.setToken(res.token);
-      }
-    }).catch((err) => {
-      console.info('Backend auth unreachable, continuing with local session:', err);
-    });
-
-    const found = mockUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.role === selectedRole
-    );
-    if (found) {
-      setUser(found);
-      return true;
-    }
-    const fallbackUser: User = {
-      id: `usr-${Date.now()}`,
-      name: email.split('@')[0],
-      email: email,
-      phone: '+91 98000 00000',
-      role: selectedRole,
+  const mapBackendUser = (data: LoginResponseData, roleOverride?: UserRole): User => {
+    const roleNormalized = (data.role?.toLowerCase() || roleOverride || 'farmer') as UserRole;
+    return {
+      id: String(data.userId),
+      name: data.fullName || 'Authenticated User',
+      email: data.email,
+      phone: '+91 98765 43210',
+      role: roleNormalized,
       verified: true,
       location: 'Rajkot, Gujarat',
+      district: 'Rajkot',
+      state: 'Gujarat',
+      joinedDate: new Date().toISOString().split('T')[0],
+      avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=200',
+      farmDetails: roleNormalized === 'farmer' ? {
+        farmSizeAcres: 12.5,
+        primaryCrops: ['Tomato', 'Cotton', 'Wheat'],
+        pickupAddress: 'Survey No. 42, Gondal Road, Rajkot, Gujarat - 360004'
+      } : undefined,
+      businessDetails: roleNormalized === 'buyer' ? {
+        businessName: 'Shree Fresh Foods Pvt Ltd',
+        gstNumber: '24AAACS1234F1Z5',
+        businessType: 'Agricultural Wholesaler & Processing'
+      } : undefined
+    };
+  };
+
+  const login = async (email: string, selectedRole?: UserRole, passwordInput?: string): Promise<boolean> => {
+    if (!email || !email.trim()) return false;
+
+    // Determine default passwords for seeded accounts if password not provided
+    let password = passwordInput;
+    if (!password) {
+      if (email.toLowerCase().includes('farmer')) password = 'Farmer@123';
+      else if (email.toLowerCase().includes('buyer')) password = 'Buyer@123';
+      else if (email.toLowerCase().includes('admin')) password = 'Admin@123';
+      else password = 'Password@123';
+    }
+
+    try {
+      const response = await apiClient.post<LoginResponseData>('/auth/login', {
+        email: email.trim(),
+        password: password
+      });
+
+      if (response && response.token) {
+        apiClient.setToken(response.token);
+        const mapped = mapBackendUser(response, selectedRole);
+        setUser(mapped);
+        return true;
+      }
+    } catch (err) {
+      console.warn('Backend login failed, attempting fallback...', err);
+    }
+
+    // Fallback if offline / demo mode
+    const fallbackRole = selectedRole || 'farmer';
+    const fallbackUser: User = {
+      id: `usr-${Date.now()}`,
+      name: email.trim().split('@')[0] || 'User',
+      email: email.trim(),
+      phone: '+91 98000 00000',
+      role: fallbackRole,
+      verified: true,
+      location: 'Rajkot, Gujarat',
+      district: 'Rajkot',
+      state: 'Gujarat',
       joinedDate: new Date().toISOString().split('T')[0]
     };
     setUser(fallbackUser);
     return true;
   };
 
-  const demoLogin = (selectedRole: UserRole) => {
-    const demoUser = mockUsers.find((u) => u.role === selectedRole) || mockUsers[0];
-    setUser(demoUser);
+  const demoLogin = async (selectedRole: UserRole) => {
+    let email = 'farmer@demo.com';
+    let password = 'Farmer@123';
+
+    if (selectedRole === 'buyer') {
+      email = 'buyer@demo.com';
+      password = 'Buyer@123';
+    } else if (selectedRole === 'admin') {
+      email = 'admin@demo.com';
+      password = 'Admin@123';
+    }
+
+    try {
+      const response = await apiClient.post<LoginResponseData>('/auth/login', { email, password });
+      if (response && response.token) {
+        apiClient.setToken(response.token);
+        setUser(mapBackendUser(response, selectedRole));
+        return;
+      }
+    } catch (e) {
+      console.warn('Demo login API unavailable, using local mock session', e);
+    }
+
+    // Safe fallback if server is offline
+    setUser({
+      id: selectedRole === 'farmer' ? '1' : selectedRole === 'buyer' ? '2' : '3',
+      name: selectedRole === 'farmer' ? 'Ramesh Patel' : selectedRole === 'buyer' ? 'Rajesh Shah' : 'Platform Administrator',
+      email,
+      phone: '+91 98765 43210',
+      role: selectedRole,
+      verified: true,
+      location: 'Rajkot, Gujarat',
+      district: 'Rajkot',
+      state: 'Gujarat',
+      joinedDate: new Date().toISOString().split('T')[0]
+    });
   };
 
-  const register = (newUser: Partial<User>) => {
-    const roleCapitalized = (newUser.role || 'farmer').charAt(0).toUpperCase() + (newUser.role || 'farmer').slice(1);
-    
-    // Register against backend Web API
-    apiClient.post('/auth/register', {
-      fullName: newUser.name || 'New User',
-      email: newUser.email || `user${Date.now()}@agripulse.in`,
-      phoneNumber: newUser.phone || `+91 98${Math.floor(10000000 + Math.random() * 90000000)}`,
-      password: 'Password@123',
-      role: roleCapitalized
-    }).catch((err) => {
-      console.info('Backend registration sync pending:', err);
-    });
+  const register = async (newUser: Partial<User>, passwordInput?: string): Promise<boolean> => {
+    const password = passwordInput || 'Password@123';
+    const roleCapitalized = newUser.role ? newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1) : 'Farmer';
+
+    try {
+      const response = await apiClient.post<LoginResponseData>('/auth/register', {
+        fullName: newUser.name || 'Agri User',
+        email: newUser.email || `user${Date.now()}@agrilink.local`,
+        phoneNumber: newUser.phone || '+91 98765 00000',
+        password,
+        role: roleCapitalized
+      });
+
+      if (response && response.token) {
+        apiClient.setToken(response.token);
+        setUser(mapBackendUser(response, newUser.role as UserRole));
+        return true;
+      }
+    } catch (err) {
+      console.warn('Backend registration failed, creating local session', err);
+    }
 
     const created: User = {
       id: `usr-${Date.now()}`,
@@ -95,19 +193,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: newUser.email || 'user@agripulse.in',
       phone: newUser.phone || '+91 99999 88888',
       role: newUser.role || 'farmer',
-      verified: false,
+      verified: true,
       location: newUser.location || 'Rajkot, Gujarat',
       joinedDate: new Date().toISOString().split('T')[0],
       farmDetails: newUser.farmDetails,
-      businessDetails: newUser.businessDetails,
-      vehicleDetails: newUser.vehicleDetails
+      businessDetails: newUser.businessDetails
     };
     setUser(created);
+    return true;
   };
 
   const logout = () => {
-    apiClient.setToken(null);
     setUser(null);
+    apiClient.setToken(null);
+    sessionStorage.removeItem('agripulse_user');
+    sessionStorage.removeItem('agripulse_session_active');
+    localStorage.removeItem('agripulse_user');
+    localStorage.removeItem('agripulse_token');
   };
 
   return (

@@ -39,39 +39,47 @@ export const tabToPath = (tab: string): string => {
     case 'farmer-transactions':
       return '/farmer/transactions';
 
-    // Buyer Routes
+    // Buyer Routes (Scoped to /buyer)
     case 'buyer-dashboard':
-    case 'buyer-notifications':
       return '/buyer/dashboard';
+    case 'buyer-notifications':
+      return '/buyer/notifications';
     case 'buyer-requirements':
       return '/buyer/requirements';
     case 'buyer-farmers':
-      return '/farmer/buyers';
+      return '/buyer/farmers';
     case 'buyer-offers':
     case 'buyer-messages':
-      return '/farmer/offers';
+      return '/buyer/offers';
     case 'buyer-transactions':
       return '/buyer/transactions';
     case 'buyer-transport':
-      return '/farmer/transport';
+      return '/buyer/transport';
 
-    // Admin Routes
+    // Admin Routes (Scoped to /admin)
     case 'admin-dashboard':
-    case 'admin-reports':
-    case 'admin-analytics':
       return '/admin/dashboard';
+    case 'admin-analytics':
+    case 'admin-reports':
+      return '/admin/analytics';
     case 'admin-users':
-    case 'admin-buyers':
       return '/admin/users';
+    case 'admin-buyers':
+      return '/admin/buyers';
     case 'admin-farmers':
-      return '/farmer/buyers';
+      return '/admin/farmers';
     case 'admin-crops':
+      return '/admin/crops';
     case 'admin-markets':
-      return '/farmer/listings';
+      return '/admin/markets';
     case 'admin-alerts':
       return '/admin/alerts';
     case 'admin-transactions':
-      return '/farmer/transactions';
+      return '/admin/transactions';
+    case 'admin-transport':
+      return '/admin/transport';
+    case 'admin-settings':
+      return '/admin/settings';
 
     case 'profile':
       return '/profile';
@@ -102,6 +110,7 @@ export const pathToTab = (pathname: string): string => {
     case '/demand-forecast':
       return 'demand-forecast';
 
+    // Farmer
     case '/farmer/dashboard':
       return 'farmer-dashboard';
     case '/farmer/add-crop':
@@ -119,19 +128,45 @@ export const pathToTab = (pathname: string): string => {
     case '/farmer/transactions':
       return 'farmer-transactions';
 
+    // Buyer
     case '/buyer/dashboard':
       return 'buyer-dashboard';
+    case '/buyer/notifications':
+      return 'buyer-notifications';
     case '/buyer/requirements':
       return 'buyer-requirements';
+    case '/buyer/farmers':
+      return 'buyer-farmers';
+    case '/buyer/offers':
+      return 'buyer-offers';
+    case '/buyer/transport':
+      return 'buyer-transport';
     case '/buyer/transactions':
       return 'buyer-transactions';
 
+    // Admin
     case '/admin/dashboard':
       return 'admin-dashboard';
     case '/admin/users':
       return 'admin-users';
+    case '/admin/farmers':
+      return 'admin-farmers';
+    case '/admin/buyers':
+      return 'admin-buyers';
+    case '/admin/crops':
+      return 'admin-crops';
+    case '/admin/markets':
+      return 'admin-markets';
     case '/admin/alerts':
       return 'admin-alerts';
+    case '/admin/transactions':
+      return 'admin-transactions';
+    case '/admin/transport':
+      return 'admin-transport';
+    case '/admin/analytics':
+      return 'admin-analytics';
+    case '/admin/settings':
+      return 'admin-settings';
 
     case '/profile':
       return 'profile';

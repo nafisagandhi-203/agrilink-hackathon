@@ -153,7 +153,7 @@ export const mockCrops: CropListing[] = [
     status: 'Under Negotiation',
     harvestDate: '2026-09-05',
     expectedSellingDate: '2026-09-11',
-    image: 'https://images.unsplash.com/photo-1618512496248-a07fe83aa8ce?auto=format&fit=crop&q=80&w=500',
+    image: 'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&q=80&w=600',
     distanceKm: 65,
     createdAt: '2026-09-08'
   },

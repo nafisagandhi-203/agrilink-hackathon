@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Lock, Mail, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,11 +13,29 @@ interface LoginProps {
 export const Login: React.FC<LoginProps> = ({ setActiveTab }) => {
   const { login, demoLogin } = useAuth();
   const { t } = useLanguage();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const [selectedRole, setSelectedRole] = useState<UserRole>('farmer');
-  const [email, setEmail] = useState('farmer@demo.com');
+  const searchRole = new URLSearchParams(location.search).get('role') as UserRole;
+  const initialRole: UserRole = ['farmer', 'buyer', 'admin'].includes(searchRole) ? searchRole : 'farmer';
+
+  const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
+  const [email, setEmail] = useState(() => {
+    if (initialRole === 'buyer') return 'buyer@demo.com';
+    if (initialRole === 'admin') return 'admin@demo.com';
+    return 'farmer@demo.com';
+  });
   const [password, setPassword] = useState('demo123');
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (searchRole && ['farmer', 'buyer', 'admin'].includes(searchRole)) {
+      setSelectedRole(searchRole);
+      if (searchRole === 'farmer') setEmail('farmer@demo.com');
+      if (searchRole === 'buyer') setEmail('buyer@demo.com');
+      if (searchRole === 'admin') setEmail('admin@demo.com');
+    }
+  }, [searchRole]);
 
   // 3 Roles ONLY (No transporter)
   const roles: { role: UserRole; title: string; icon: string; bg: string; subtitle: string }[] = [
@@ -52,18 +71,23 @@ export const Login: React.FC<LoginProps> = ({ setActiveTab }) => {
     if (role === 'admin') setEmail('admin@demo.com');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
+    setErrorMsg('');
+    if (!email || !email.trim()) {
       setErrorMsg('Please enter your email or phone number.');
       return;
     }
-    login(email, selectedRole);
-    redirectToRoleDashboard(selectedRole);
+    const success = await login(email, selectedRole, password);
+    if (success) {
+      redirectToRoleDashboard(selectedRole);
+    } else {
+      setErrorMsg('Invalid email or credentials. Please try again.');
+    }
   };
 
-  const handleDemoQuickLogin = (role: UserRole) => {
-    demoLogin(role);
+  const handleDemoQuickLogin = async (role: UserRole) => {
+    await demoLogin(role);
     redirectToRoleDashboard(role);
   };
 
@@ -79,7 +103,7 @@ export const Login: React.FC<LoginProps> = ({ setActiveTab }) => {
         setActiveTab('admin-dashboard');
         break;
       default:
-        setActiveTab('home');
+        setActiveTab('farmer-dashboard');
     }
   };
 
@@ -92,10 +116,11 @@ export const Login: React.FC<LoginProps> = ({ setActiveTab }) => {
         <span className="text-xs font-bold text-[#538d22] bg-[#f4f8f0] px-3 py-1 rounded-full border border-[#e2ebd9]">
           Secure Sign In
         </span>
+        
       </div>
 
       {/* SIH DEMO QUICK LOGIN BANNER */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-[#143601] via-[#1a4301] to-[#245501] text-white shadow-xl border border-[#538d22]/40 space-y-4">
+      {/* <div className="p-6 rounded-3xl bg-gradient-to-r from-[#143601] via-[#1a4301] to-[#245501] text-white shadow-xl border border-[#538d22]/40 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#aad576]" />
@@ -130,7 +155,7 @@ export const Login: React.FC<LoginProps> = ({ setActiveTab }) => {
             <span>🛡️ Demo Admin</span>
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Login Card */}
       <div className="bg-white rounded-3xl shadow-xl border border-[#e2ebd9] overflow-hidden">
@@ -207,10 +232,19 @@ export const Login: React.FC<LoginProps> = ({ setActiveTab }) => {
 
           <button
             type="submit"
-            className="w-full py-3.5 px-6 rounded-2xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-sm shadow-xl shadow-[#143601]/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-6 rounded-2xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-sm shadow-xl shadow-[#143601]/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Login as {selectedRole.toUpperCase()}</span>
             <ArrowRight className="w-4 h-4 text-[#aad576]" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleDemoQuickLogin(selectedRole)}
+            className="w-full py-3 px-6 rounded-2xl bg-[#f4f8f0] hover:bg-[#e2ebd9] text-[#143601] font-extrabold text-xs border border-[#e2ebd9] flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-[#538d22]" />
+            <span>Instant Demo Login ({selectedRole.toUpperCase()})</span>
           </button>
 
           <div className="text-center pt-2">
@@ -218,8 +252,8 @@ export const Login: React.FC<LoginProps> = ({ setActiveTab }) => {
               Don't have an account?{' '}
               <button
                 type="button"
-                onClick={() => setActiveTab('register')}
-                className="font-bold text-[#143601] hover:underline"
+                onClick={() => navigate(`/register?role=${selectedRole}`)}
+                className="font-bold text-[#143601] hover:underline cursor-pointer"
               >
                 Register here
               </button>

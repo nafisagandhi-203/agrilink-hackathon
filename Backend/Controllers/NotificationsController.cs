@@ -36,7 +36,13 @@ public NotificationsController(ApplicationDbContext context, IValidator<CreateNo
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<NotificationDto>>>> GetNotifications()
     {
-        var entities = await _context.Notifications.ToListAsync();
+        var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(currentUserIdStr, out int currentUserId)) return Unauthorized();
+
+        var entities = await _context.Notifications
+            .Where(e => e.UserId == currentUserId)
+            .OrderByDescending(e => e.CreatedAt)
+            .ToListAsync();
             
         var dtos = entities.Select(e => new NotificationDto
         {

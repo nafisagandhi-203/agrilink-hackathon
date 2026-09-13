@@ -24,12 +24,31 @@ public class DemandForecastsController : ControllerBase
 
         private readonly IValidator<CreateDemandForecastDto> _createValidator;
     private readonly IValidator<UpdateDemandForecastDto> _updateValidator;
+    private readonly Services.IIntelligenceService _intelligenceService;
 
-public DemandForecastsController(ApplicationDbContext context, IValidator<CreateDemandForecastDto> createValidator, IValidator<UpdateDemandForecastDto> updateValidator)
+public DemandForecastsController(ApplicationDbContext context, Services.IIntelligenceService intelligenceService, IValidator<CreateDemandForecastDto> createValidator, IValidator<UpdateDemandForecastDto> updateValidator)
     {
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _intelligenceService = intelligenceService;
         _context = context;
+    }
+
+    // GET: api/DemandForecasts/summary
+    [HttpGet("summary")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<DemandForecastSummaryDto>>>> GetDemandSummaries()
+    {
+        var summaries = await _intelligenceService.GetDemandSummariesAsync();
+        return Ok(ApiResponse<IEnumerable<DemandForecastSummaryDto>>.SuccessResponse(summaries, "Demand summaries computed from live market data"));
+    }
+
+    // POST: api/DemandForecasts/refresh
+    [Authorize(Roles = "Admin")]
+    [HttpPost("refresh")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<DemandForecastSummaryDto>>>> RefreshDemandForecasts()
+    {
+        var summaries = await _intelligenceService.RefreshDemandForecastsAsync();
+        return Ok(ApiResponse<IEnumerable<DemandForecastSummaryDto>>.SuccessResponse(summaries, "Demand forecasts refreshed"));
     }
 
     // GET: api/DemandForecasts

@@ -25,6 +25,7 @@ namespace HackathonProject.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<MarketPriceResponseDto>>> GetMarketPrices()
         {
             var prices = await _context.MarketPrices.Include(m => m.Crop).ToListAsync();
@@ -49,6 +50,7 @@ namespace HackathonProject.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<MarketPriceResponseDto>> GetMarketPrice(int id)
         {
             var m = await _context.MarketPrices.Include(x => x.Crop).FirstOrDefaultAsync(x => x.MarketPriceId == id);

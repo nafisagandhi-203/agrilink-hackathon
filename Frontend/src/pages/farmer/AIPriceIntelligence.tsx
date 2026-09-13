@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   TrendingUp,
   Sparkles,
@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { BackButton } from '../../components/BackButton';
 import { aiIntelligenceService, type FarmerAiInput, type AiIntelligenceResult } from '../../services/aiIntelligenceService';
+import { ViewProfileModal } from '../../components/ViewProfileModal';
 
 interface AIPriceIntelligenceProps {
   setActiveTab?: (tab: string) => void;
@@ -45,11 +46,77 @@ export const AIPriceIntelligence: React.FC<AIPriceIntelligenceProps> = ({ setAct
   });
 
   // Dynamic AI Result State
-  const [aiResult, setAiResult] = useState<AiIntelligenceResult>(
-    aiIntelligenceService.getAnalysis(inputState)
-  );
+  const [aiResult, setAiResult] = useState<AiIntelligenceResult>({
+    crop: inputState.crop,
+    location: inputState.location,
+    quantityKg: inputState.quantityKg,
+    grade: inputState.grade,
+    currentPricePerKg: 28,
+    aiExpectedMinPerKg: 26,
+    aiExpectedMaxPerKg: 33,
+    predictionTrend: 'Price may increase',
+    recommendedAction: 'Connecting to live FastAPI models for current market prediction...',
+    priceTrend: [
+      { stage: 'Past (7 Days ago)', price: 26, type: 'past' },
+      { stage: 'Current Price Today', price: 28, type: 'current' },
+      { stage: 'AI Predicted (7 Days)', price: 33, type: 'predicted' }
+    ],
+    marketComparison: [
+      { source: 'Rajkot APMC', type: 'mandi', pricePerKg: 28 },
+      { source: 'Gondal Mandi', type: 'mandi', pricePerKg: 30 },
+      { source: 'AgroCorp Direct', type: 'buyer', pricePerKg: 33, isBest: true }
+    ],
+    fairPriceMinPerKg: 26,
+    fairPriceMaxPerKg: 33,
+    priceDiscoveryExplanation: 'Synthesizing live APMC arrivals, demand elasticity, and historical trends...',
+    recommendedBuyers: [
+      {
+        id: 'buyer-01',
+        name: 'AgroCorp Direct',
+        badge: '🥇 Best Match',
+        pricePerKg: 33,
+        requiredQtyRange: '500 – 2000 kg',
+        distanceKm: 28,
+        matchScore: 96,
+        reasons: ['✓ High verified demand', '✓ Escrow payment verified']
+      }
+    ],
+    weatherCondition: 'Moderate Humidity / Clear Skies',
+    temperature: '31°C',
+    rainProbability: '20%',
+    expectedWeather: 'Dry conditions favorable for harvest & transit',
+    marketImpact: 'Optimal quality expected across regional sorting corridors.',
+    weatherRecommendation: 'Weather conditions are optimal for immediate harvest and open transit.',
+    weatherRiskSeverity: 'low',
+    currentDemand: 'MEDIUM',
+    predictedDemand: 'HIGH ↑',
+    demandForecastChart: [
+      { label: 'Current Today', demandIndex: 58 },
+      { label: '7 Days', demandIndex: 74 },
+      { label: '15 Days', demandIndex: 86 },
+      { label: '30 Days', demandIndex: 92 }
+    ],
+    demandRecommendation: 'Processing demand in regional hubs is trending upward.',
+    normalRangeMinPerKg: 26,
+    normalRangeMaxPerKg: 33,
+    suspiciousOffer: {
+      buyerName: 'Unverified Spot Trader',
+      offeredPricePerKg: 14,
+      differencePercent: -50,
+      warningTitle: '⚠️ Abnormal Low Price Flagged',
+      warningDesc: 'Offer is 50% below discovered fair price range.'
+    },
+    fairOffer: {
+      buyerName: 'AgroCorp Direct',
+      offeredPricePerKg: 33,
+      differencePercent: +15,
+      statusTitle: '✓ Fair Value Offer Confirmed',
+      statusDesc: 'Offer matches the AI discovered high-confidence trading band.'
+    }
+  });
 
   const [isCalculating, setIsCalculating] = useState(false);
+  const [selectedProfileForView, setSelectedProfileForView] = useState<any | null>(null);
 
   // Section Refs for Smooth Scrolling from Summary Cards
   const section1Ref = useRef<HTMLDivElement>(null);
@@ -63,25 +130,21 @@ export const AIPriceIntelligence: React.FC<AIPriceIntelligenceProps> = ({ setAct
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    aiIntelligenceService.getAnalysisAsync(inputState).then((res) => {
-      if (isMounted) setAiResult(res);
-    });
-    return () => { isMounted = false; };
-  }, []);
-
   const handleGetAiRecommendation = async () => {
     setIsCalculating(true);
     try {
-      const res = await aiIntelligenceService.getAnalysisAsync(inputState);
+      const res = await aiIntelligenceService.getAnalysis(inputState);
       setAiResult(res);
-    } catch {
-      setAiResult(aiIntelligenceService.getAnalysis(inputState));
+    } catch (err) {
+      console.warn('AI analysis error:', err);
     } finally {
       setIsCalculating(false);
     }
   };
+
+  useEffect(() => {
+    handleGetAiRecommendation();
+  }, [inputState.crop, inputState.location]);
 
   return (
     <div className="space-y-8 animate-plant-grow pb-12">
@@ -484,20 +547,46 @@ export const AIPriceIntelligence: React.FC<AIPriceIntelligenceProps> = ({ setAct
 
               <div className="flex items-center gap-2 pt-2 border-t border-[#f4f8f0]">
                 <button
-                  onClick={() => {
-                    if (setActiveTab) setActiveTab('farmer-buyers');
-                  }}
-                  className="flex-1 py-2 px-3 rounded-xl bg-[#f4f8f0] hover:bg-[#e2ebd9] text-[#143601] font-extrabold text-xs transition-colors flex items-center justify-center gap-1"
+                  onClick={() => setSelectedProfileForView({
+                    name: b.name,
+                    role: 'buyer',
+                    phone: '+91 98765 43210',
+                    email: `${b.name.toLowerCase().replace(/\s+/g, '')}@agripulse.in`,
+                    location: `${b.distanceKm} km away • Rajkot APMC`,
+                    verified: true,
+                    compatibilityScore: b.matchScore,
+                    cropRequirement: `Required: ${b.requiredQtyRange}`,
+                    offeredPrice: b.pricePerKg * 100,
+                    distanceKm: b.distanceKm,
+                    businessDetails: {
+                      businessName: b.name,
+                      gstNumber: '24AAACB1234C1Z5'
+                    }
+                  })}
+                  className="flex-1 py-2 px-3 rounded-xl bg-[#f4f8f0] hover:bg-[#e2ebd9] text-[#143601] font-extrabold text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>View Buyer</span>
                 </button>
 
                 <button
-                  onClick={() => {
-                    if (setActiveTab) setActiveTab('farmer-messages');
-                  }}
-                  className="flex-1 py-2 px-3 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-xs shadow transition-colors flex items-center justify-center gap-1"
+                  onClick={() => setSelectedProfileForView({
+                    name: b.name,
+                    role: 'buyer',
+                    phone: '+91 98765 43210',
+                    email: `${b.name.toLowerCase().replace(/\s+/g, '')}@agripulse.in`,
+                    location: `${b.distanceKm} km away • Rajkot APMC`,
+                    verified: true,
+                    compatibilityScore: b.matchScore,
+                    cropRequirement: `Required: ${b.requiredQtyRange}`,
+                    offeredPrice: b.pricePerKg * 100,
+                    distanceKm: b.distanceKm,
+                    businessDetails: {
+                      businessName: b.name,
+                      gstNumber: '24AAACB1234C1Z5'
+                    }
+                  })}
+                  className="flex-1 py-2 px-3 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-xs shadow transition-colors flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <PhoneCall className="w-3.5 h-3.5 text-[#aad576]" />
                   <span>Contact</span>
@@ -675,6 +764,13 @@ export const AIPriceIntelligence: React.FC<AIPriceIntelligenceProps> = ({ setAct
 
         </div>
       </div>
+
+      {/* View Profile Modal */}
+      <ViewProfileModal
+        isOpen={!!selectedProfileForView}
+        onClose={() => setSelectedProfileForView(null)}
+        profileData={selectedProfileForView}
+      />
 
     </div>
   );

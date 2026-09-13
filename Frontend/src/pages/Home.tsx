@@ -91,6 +91,12 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab, onOpenVoiceModal }) =>
                 <img
                   src="https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&q=80&w=800"
                   alt="Indian Farming Field"
+                  decoding="async"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.onerror = null;
+                    target.src = '/hero.png';
+                  }}
                   className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#143601]/60 via-transparent to-transparent" />
@@ -118,7 +124,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab, onOpenVoiceModal }) =>
               </div>
 
               {/* Card 2: AI Insight */}
-              <div className="absolute -bottom-3 -right-2 sm:-right-6 bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-[#e2ebd9] flex items-center gap-3 animate-soft-pulse">
+              <div className="absolute -bottom-3 -right-2 sm:-right-6 bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-[#e2ebd9] flex items-center gap-3 animate-leaf-float">
                 <div className="w-10 h-10 rounded-xl bg-[#143601] text-[#aad576] flex items-center justify-center">
                   <Sparkles className="w-5 h-5" />
                 </div>
@@ -279,7 +285,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab, onOpenVoiceModal }) =>
               <Mic className="w-3.5 h-3.5 text-[#aad576] animate-pulse" />
               <span>Multi-Lingual AI Voice Engine</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#aad576] tracking-tight">
               {t('voiceSectionTitle')}
             </h2>
             <p className="text-xs sm:text-sm text-[#aad576] font-medium max-w-xl">

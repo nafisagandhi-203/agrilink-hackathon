@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                       onClick={() => {
                         logout();
                         setUserDropdownOpen(false);
-                        setActiveTab('role-selection');
+                        setActiveTab('login');
                       }}
                       className="w-full px-4 py-2 text-left text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
                     >

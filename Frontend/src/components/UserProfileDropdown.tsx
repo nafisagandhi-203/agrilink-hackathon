@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, LogOut, RefreshCw, ChevronDown } from 'lucide-react';
+import { User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -50,7 +50,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ setAct
         </div>
         <div className="hidden sm:block text-left">
           <p className="text-xs font-black text-[#143601] leading-tight max-w-[130px] truncate">
-            {user?.name || 'Ramesh Patel'}
+            {user?.name || 'User'}
           </p>
           <span className={`inline-block text-[9px] font-extrabold px-1.5 py-0.1 rounded border uppercase ${badge.bg}`}>
             {role?.toUpperCase()}
@@ -63,8 +63,8 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ setAct
         <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-white shadow-2xl border border-[#e2ebd9] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
           {/* Header info */}
           <div className="px-4 py-2.5 border-b border-[#f4f8f0]">
-            <p className="text-xs font-black text-[#143601] truncate">{user?.name || 'Ramesh Patel'}</p>
-            <p className="text-[11px] text-[#4b633d] font-semibold truncate">{user?.phone || '+91 98765 43210'}</p>
+            <p className="text-xs font-black text-[#143601] truncate">{user?.name || 'User'}</p>
+            <p className="text-[11px] text-[#4b633d] font-semibold truncate">{user?.phone || ''}</p>
             <span className={`inline-block mt-1 text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${badge.bg}`}>
               {badge.label}
             </span>
@@ -83,24 +83,13 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ setAct
               <span>{t('profile')}</span>
             </button>
 
-            <button
-              onClick={() => {
-                setActiveTab('role-selection');
-                setIsOpen(false);
-              }}
-              className="w-full px-4 py-2 text-left text-xs font-bold text-[#143601] hover:bg-[#f4f8f0] flex items-center gap-2.5 transition-colors cursor-pointer"
-            >
-              <RefreshCw className="w-4 h-4 text-[#538d22]" />
-              <span>{t('switchRole')}</span>
-            </button>
-
             <div className="border-t border-[#f4f8f0] my-1" />
 
             <button
               onClick={() => {
                 logout();
                 setIsOpen(false);
-                setActiveTab('role-selection');
+                setActiveTab('login');
               }}
               className="w-full px-4 py-2 text-left text-xs font-black text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors cursor-pointer"
             >

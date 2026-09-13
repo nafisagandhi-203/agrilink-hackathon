@@ -257,3 +257,15 @@ export interface Notification {
   read: boolean;
   link?: string;
 }
+
+export interface MarketPriceItem {
+  id: number;
+  cropName: string;
+  mandi: string;
+  state: string;
+  modalPrice: number;
+  minPrice: number;
+  maxPrice: number;
+  trend: 'up' | 'down' | 'stable';
+  priceDate?: string;
+}

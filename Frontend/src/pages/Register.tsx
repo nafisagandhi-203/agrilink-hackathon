@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { BackButton } from '../components/BackButton';
@@ -10,7 +11,12 @@ interface RegisterProps {
 
 export const Register: React.FC<RegisterProps> = ({ setActiveTab }) => {
   const { register } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const routerLocation = useLocation();
+
+  const searchRole = new URLSearchParams(routerLocation.search).get('role') as UserRole;
+  const initialRole: UserRole | null = ['farmer', 'buyer', 'admin'].includes(searchRole) ? searchRole : null;
+
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(initialRole);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,19 +29,19 @@ export const Register: React.FC<RegisterProps> = ({ setActiveTab }) => {
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('Wholesaler');
 
-  const handleCompleteRegister = (e: React.FormEvent) => {
+  const handleCompleteRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRole) return;
 
-    register({
+    await register({
       name: name || 'Demo Registrant',
-      email: email || `${selectedRole}@agripulse.in`,
+      email: email || `${selectedRole}${Date.now()}@agripulse.in`,
       phone: phone || '+91 98765 00000',
       role: selectedRole,
       location: location,
       farmDetails: selectedRole === 'farmer' ? { farmSizeAcres: Number(farmSize), primaryCrops: [primaryCrop], pickupAddress: location } : undefined,
       businessDetails: selectedRole === 'buyer' ? { businessName: businessName || 'Agro Trading Co', businessType } : undefined
-    });
+    }, password || 'Password@123');
 
     if (selectedRole === 'farmer') setActiveTab('farmer-dashboard');
     if (selectedRole === 'buyer') setActiveTab('buyer-dashboard');

@@ -16,6 +16,8 @@ public class TransportBooking
     public decimal DeliveryLongitude { get; set; }
     public decimal CropQuantity { get; set; }
     public decimal DistanceKm { get; set; }
+    public decimal? EstimatedFare { get; set; }
+    public string? DistanceNote { get; set; }
     public int EstimatedTravelTimeMinutes { get; set; }
     public decimal EstimatedTransportCost { get; set; }
     public decimal AgreedTransportCost { get; set; }

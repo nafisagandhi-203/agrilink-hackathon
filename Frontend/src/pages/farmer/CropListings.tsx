@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Sprout, PlusCircle, Search, Trash2, Users } from 'lucide-react';
+import { Sprout, PlusCircle, Search, Trash2, Users, Edit3 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { EmptyState } from '../../components/EmptyState';
+import { CropImage } from '../../components/CropImage';
+import { EditCropModal } from '../../components/EditCropModal';
+import type { CropListing } from '../../types';
 
 interface CropListingsProps {
   setActiveTab: (tab: string) => void;
@@ -11,6 +14,7 @@ export const CropListings: React.FC<CropListingsProps> = ({ setActiveTab }) => {
   const { crops, deleteCrop } = useData();
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [cropToEdit, setCropToEdit] = useState<CropListing | null>(null);
 
   const filteredCrops = crops.filter((c) => {
     const matchesStatus = filterStatus === 'All' || c.status === filterStatus;
@@ -96,8 +100,9 @@ export const CropListings: React.FC<CropListingsProps> = ({ setActiveTab }) => {
               <div className="space-y-3">
                 
                 <div className="relative h-40 rounded-2xl overflow-hidden bg-[#f4f8f0]">
-                  <img
+                  <CropImage
                     src={crop.image}
+                    cropName={crop.cropName}
                     alt={crop.cropName}
                     className="w-full h-full object-cover"
                   />
@@ -148,15 +153,23 @@ export const CropListings: React.FC<CropListingsProps> = ({ setActiveTab }) => {
               <div className="pt-3 border-t border-[#f4f8f0] flex items-center justify-between gap-2">
                 <button
                   onClick={() => setActiveTab('farmer-buyers')}
-                  className="px-4 py-2.5 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-xs shadow transition-transform hover:scale-[1.01] flex items-center gap-1.5 flex-1 justify-center"
+                  className="px-4 py-2.5 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-xs shadow transition-transform hover:scale-[1.01] flex items-center gap-1.5 flex-1 justify-center cursor-pointer"
                 >
                   <Users className="w-3.5 h-3.5 text-[#aad576]" />
                   <span>Find Buyers</span>
                 </button>
 
                 <button
+                  onClick={() => setCropToEdit(crop)}
+                  className="p-2.5 rounded-xl text-[#143601] hover:bg-[#f4f8f0] border border-[#e2ebd9] transition-colors cursor-pointer"
+                  title="Edit Crop Listing & Image"
+                >
+                  <Edit3 className="w-4 h-4 text-[#538d22]" />
+                </button>
+
+                <button
                   onClick={() => deleteCrop(crop.id)}
-                  className="p-2.5 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors"
+                  className="p-2.5 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
                   title="Delete Listing"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -167,6 +180,13 @@ export const CropListings: React.FC<CropListingsProps> = ({ setActiveTab }) => {
           ))}
         </div>
       )}
+
+      {/* Edit Crop Modal */}
+      <EditCropModal
+        isOpen={!!cropToEdit}
+        onClose={() => setCropToEdit(null)}
+        crop={cropToEdit}
+      />
 
     </div>
   );

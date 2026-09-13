@@ -49,7 +49,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setActiveTab }) => {
       </div>
 
       <div className="p-8 rounded-3xl bg-gradient-to-r from-[#143601] via-[#1a4301] to-[#245501] text-white text-center space-y-4 shadow-xl border border-[#538d22]/40">
-        <h3 className="text-2xl font-black">Ready to Experience AgriPulse?</h3>
+        <h3 className="text-2xl font-black text-[#aad576] ">Ready to Experience AgriPulse?</h3>
         <p className="text-xs text-[#aad576] font-medium">Try our SIH Demo Mode or register as a Farmer or Buyer.</p>
         <button
           onClick={() => setActiveTab('role-selection')}

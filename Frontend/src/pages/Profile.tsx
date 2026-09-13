@@ -35,8 +35,15 @@ export const Profile: React.FC<ProfileProps> = ({ setActiveTab }) => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
             <img
+              loading="lazy"
+              decoding="async"
               src={user?.avatar || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=200'}
               alt={user?.name || 'User'}
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.onerror = null;
+                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=538d22&color=fff&bold=true&size=128`;
+              }}
               className="w-24 h-24 rounded-full object-cover ring-4 ring-[#aad576]/60 shadow-md"
             />
 

@@ -36,36 +36,44 @@ export const AbnormalPriceMonitoring: React.FC<AbnormalPriceMonitoringProps> = (
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f4f8f0] font-semibold">
-              {alerts.map((alt) => (
-                <tr key={alt.id}>
-                  <td className="p-3 font-bold text-[#143601]">{alt.cropName}</td>
-                  <td className="p-3">{alt.buyerName}</td>
-                  <td className="p-3 text-rose-600 font-extrabold">₹{alt.offeredPrice}/q</td>
-                  <td className="p-3 text-[#538d22] font-extrabold">₹{alt.fairPriceMin} – ₹{alt.fairPriceMax}</td>
-                  <td className="p-3 font-bold text-rose-600">{alt.differencePercent}%</td>
-                  <td className="p-3">
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black ${
-                      alt.severity === 'High' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-900 border border-amber-200'
-                    }`}>
-                      {alt.severity} Risk
-                    </span>
-                  </td>
-                  <td className="p-3 flex items-center gap-2">
-                    <button
-                      onClick={() => dismissAlert(alt.id)}
-                      className="px-3 py-1 rounded-xl bg-[#f4f8f0] hover:bg-[#e2ebd9] text-[#143601] text-xs font-bold transition-colors"
-                    >
-                      Dismiss
-                    </button>
-                    <button
-                      onClick={() => alert(`Investigating buyer ${alt.buyerName}`)}
-                      className="px-3 py-1 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow transition-transform hover:scale-105"
-                    >
-                      Investigate
-                    </button>
+              {alerts.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-[#4b633d]">
+                    No abnormal price alerts flagged by AI monitoring.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                alerts.map((alt) => (
+                  <tr key={alt.id}>
+                    <td className="p-3 font-bold text-[#143601]">{alt.cropName}</td>
+                    <td className="p-3">{alt.buyerName}</td>
+                    <td className="p-3 text-rose-600 font-extrabold">₹{alt.offeredPrice}/q</td>
+                    <td className="p-3 text-[#538d22] font-extrabold">₹{alt.fairPriceMin} – ₹{alt.fairPriceMax}</td>
+                    <td className="p-3 font-bold text-rose-600">{alt.differencePercent}%</td>
+                    <td className="p-3">
+                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-black ${
+                        alt.severity === 'High' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-900 border border-amber-200'
+                      }`}>
+                        {alt.severity} Risk
+                      </span>
+                    </td>
+                    <td className="p-3 flex items-center gap-2">
+                      <button
+                        onClick={() => dismissAlert(alt.id)}
+                        className="px-3 py-1 rounded-xl bg-[#f4f8f0] hover:bg-[#e2ebd9] text-[#143601] text-xs font-bold transition-colors"
+                      >
+                        Dismiss
+                      </button>
+                      <button
+                        onClick={() => alert(`Investigating buyer ${alt.buyerName}`)}
+                        className="px-3 py-1 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow transition-transform hover:scale-105"
+                      >
+                        Investigate
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

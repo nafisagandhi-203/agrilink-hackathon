@@ -2,19 +2,23 @@
 
 @layer base {
   :root {
-    --black-forest: #143601;
-    --black-forest-2: #1a4301;
-    --olive-leaf: #245501;
-    --forest-moss: #538d22;
+    --black-forest: #263322;
+    --black-forest-2: #34442e;
+    --olive-leaf: #3f5e33;
+    --forest-moss: #5f8d4e;
     --sage-green: #73a942;
-    --willow-green: #aad576;
+    --willow-green: #ddecc8;
 
-    --bg-primary: #fcfdfa;
+    --bg-primary: #fffdf5;
     --bg-surface: #ffffff;
-    --bg-subtle: #f4f8f0;
-    --text-main: #143601;
-    --text-muted: #4b633d;
-    --border-color: #e2ebd9;
+    --bg-subtle: #f3f7e8;
+    --sidebar-bg: #f3f7e8;
+    --sidebar-active: #ddecc8;
+    --sidebar-hover: #e6f1d8;
+    --primary-green: #5f8d4e;
+    --text-main: #263322;
+    --text-muted: #687260;
+    --border-color: #dce4d3;
   }
 
   *, *::before, *::after {
@@ -164,4 +168,89 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #538d22;
+}
+
+/* Custom Leaflet Map Tooltips for Route & Distance */
+.leaflet-tooltip.map-custom-tooltip-pickup,
+.leaflet-tooltip.map-custom-tooltip-delivery,
+.leaflet-tooltip.map-custom-tooltip-corridor,
+.leaflet-tooltip.map-route-polyline-tooltip {
+  background: rgba(20, 54, 1, 0.92) !important;
+  backdrop-filter: blur(6px);
+  color: #ffffff !important;
+  border: 1.5px solid #aad576 !important;
+  border-radius: 12px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
+  white-space: nowrap !important;
+}
+
+.leaflet-tooltip.map-custom-tooltip-delivery {
+  background: rgba(37, 99, 235, 0.92) !important;
+  border-color: #93c5fd !important;
+}
+
+.leaflet-tooltip.map-route-polyline-tooltip {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #143601 !important;
+  border: 2px solid #538d22 !important;
+  box-shadow: 0 4px 14px rgba(20, 54, 1, 0.25) !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+.leaflet-tooltip::before {
+  display: none !important;
+}
+
+/* Dashboard Professional Color System & Glassmorphic Utilities */
+.gradient-banner-farmer {
+  background: linear-gradient(135deg, #0b2201 0%, #143601 45%, #245501 100%);
+  border: 1px solid rgba(170, 213, 118, 0.3);
+  box-shadow: 0 16px 32px -8px rgba(20, 54, 1, 0.35);
+}
+
+.gradient-banner-buyer {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e3a8a 100%);
+  border: 1px solid rgba(147, 197, 253, 0.3);
+  box-shadow: 0 16px 32px -8px rgba(30, 58, 138, 0.35);
+}
+
+.gradient-banner-admin {
+  background: linear-gradient(135deg, #2e1065 0%, #3b0764 50%, #581c87 100%);
+  border: 1px solid rgba(216, 180, 254, 0.3);
+  box-shadow: 0 16px 32px -8px rgba(88, 28, 135, 0.35);
+}
+
+.dashboard-stat-card {
+  background: #ffffff;
+  border: 1px solid #e2ebd9;
+  box-shadow: 0 2px 8px rgba(20, 54, 1, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -6px rgba(20, 54, 1, 0.12);
+  border-color: #538d22;
+}
+
+.badge-glow-emerald {
+  background: rgba(83, 141, 34, 0.12);
+  color: #143601;
+  border: 1px solid rgba(115, 169, 66, 0.35);
+}
+
+.badge-glow-blue {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1e40af;
+  border: 1px solid rgba(147, 197, 253, 0.45);
+}
+
+.badge-glow-purple {
+  background: rgba(147, 51, 234, 0.12);
+  color: #6b21a8;
+  border: 1px solid rgba(216, 180, 254, 0.45);
 }

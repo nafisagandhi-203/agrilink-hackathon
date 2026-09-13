@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, CheckCircle2, ChevronRight, Navigation, AlertCircle } from 'lucide-react';
 import { MapView } from '../../components/MapView';
-import { mockTransporters } from '../../data/mockData';
 import { transportService } from '../../services/transportService';
+import type { TransporterProfile } from '../../types';
 import { BackButton } from '../../components/BackButton';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface TransportationProps {
   setActiveTab: (tab: string) => void;
@@ -12,7 +13,19 @@ interface TransportationProps {
 
 export const Transportation: React.FC<TransportationProps> = ({ setActiveTab }) => {
   const { t } = useLanguage();
+  const { role } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [transporters, setTransporters] = useState<TransporterProfile[]>([]);
+
+  useEffect(() => {
+    transportService.getTransporters().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setTransporters(data);
+      }
+    });
+  }, []);
+
+  const fallbackDashboard = role === 'admin' ? 'admin-dashboard' : role === 'buyer' ? 'buyer-dashboard' : 'farmer-dashboard';
   const [pickup, setPickup] = useState('My Farm Gate, Rajkot');
   const [delivery, setDelivery] = useState('Naroda Warehouse, Ahmedabad');
   const [quantityKg, setQuantityKg] = useState(500);
@@ -69,7 +82,7 @@ export const Transportation: React.FC<TransportationProps> = ({ setActiveTab }) 
       
       {/* Top Header & Back Button */}
       <div className="flex items-center justify-between">
-        <BackButton fallbackTab="farmer-dashboard" setActiveTab={setActiveTab} />
+        <BackButton fallbackTab={fallbackDashboard} setActiveTab={setActiveTab} />
         <span className="text-xs font-bold text-[#538d22] bg-[#f4f8f0] px-3 py-1 rounded-full border border-[#e2ebd9]">
           Logistics Corridor
         </span>
@@ -195,7 +208,7 @@ export const Transportation: React.FC<TransportationProps> = ({ setActiveTab }) 
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mockTransporters.map((trans) => {
+          {transporters.map((trans) => {
             const calculatedCost = trans.pricePerKm * routeInfo.distanceKm;
 
             return (

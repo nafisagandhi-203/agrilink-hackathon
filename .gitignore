@@ -36,3 +36,8 @@ Thumbs.db
 
 # Raw eNAM datasets (large, publicly available; see AI/reports/dataset_sources.md)
 Datasets/
+
+# Local dev SQLite database
+*.db
+*.db-shm
+*.db-wal

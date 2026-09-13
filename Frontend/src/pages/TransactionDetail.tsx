@@ -1,15 +1,39 @@
 import React from 'react';
 import { CheckCircle2, ArrowRight, Receipt } from 'lucide-react';
 import { StatusTimeline } from '../components/StatusTimeline';
+import { useAuth } from '../context/AuthContext';
+import { BackButton } from '../components/BackButton';
 
 interface TransactionDetailProps {
   setActiveTab: (tab: string) => void;
 }
 
 export const TransactionDetail: React.FC<TransactionDetailProps> = ({ setActiveTab }) => {
+  const { role } = useAuth();
+
+  const handleArrangeTransport = () => {
+    if (role === 'admin') {
+      setActiveTab('admin-transport');
+    } else if (role === 'buyer') {
+      setActiveTab('buyer-transport');
+    } else {
+      setActiveTab('farmer-transport');
+    }
+  };
+
+  const fallbackDashboard = role === 'admin' ? 'admin-dashboard' : role === 'buyer' ? 'buyer-dashboard' : 'farmer-dashboard';
+
   return (
     <div className="space-y-6 animate-plant-grow">
       
+      {/* Top Header & Back Button */}
+      <div className="flex items-center justify-between">
+        <BackButton fallbackTab={fallbackDashboard} setActiveTab={setActiveTab} />
+        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+          Verified Trade Receipt
+        </span>
+      </div>
+
       <div className="bg-[#f4f8f0] p-5 sm:p-6 rounded-3xl border border-[#e2ebd9]">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#143601] text-xs font-bold border border-[#e2ebd9] mb-1.5">
           <Receipt className="w-3.5 h-3.5 text-[#538d22]" />
@@ -55,8 +79,8 @@ export const TransactionDetail: React.FC<TransactionDetailProps> = ({ setActiveT
         <div className="p-4 rounded-2xl bg-[#f4f8f0] border border-[#e2ebd9] flex items-center justify-between text-xs font-black text-[#143601]">
           <span className="text-sm">Total Trade Value: ₹12,750</span>
           <button
-            onClick={() => setActiveTab('farmer-transport')}
-            className="px-4 py-2.5 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold transition-all flex items-center gap-1.5 shadow"
+            onClick={handleArrangeTransport}
+            className="px-4 py-2.5 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold transition-all flex items-center gap-1.5 shadow cursor-pointer"
           >
             <span>Arrange Transport</span>
             <ArrowRight className="w-4 h-4 text-[#aad576]" />

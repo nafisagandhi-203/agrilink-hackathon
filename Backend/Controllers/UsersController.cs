@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Data;
 using Models;
@@ -18,23 +19,19 @@ namespace Controllers;
 public class UsersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
-
-    
-
-    
-
-        private readonly IValidator<CreateUserDto> _createValidator;
+    private readonly IValidator<CreateUserDto> _createValidator;
     private readonly IValidator<UpdateUserDto> _updateValidator;
 
-public UsersController(ApplicationDbContext context, IValidator<CreateUserDto> createValidator, IValidator<UpdateUserDto> updateValidator)
+    public UsersController(ApplicationDbContext context, IValidator<CreateUserDto> createValidator, IValidator<UpdateUserDto> updateValidator)
     {
+        _context = context;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
-        _context = context;
     }
 
     // GET: api/Users
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
     {
         var entities = await _context.Users.ToListAsync();
@@ -54,13 +51,13 @@ public UsersController(ApplicationDbContext context, IValidator<CreateUserDto> c
 
     // GET: api/Users/5
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<UserDto>> GetUser(int id)
     {
         var entity = await _context.Users.FirstOrDefaultAsync(e => e.UserId == id);
-
         if (entity == null) return NotFound();
 
-        return new UserDto
+        return Ok(new UserDto
         {
             UserId = entity.UserId,
             FullName = entity.FullName,
@@ -70,7 +67,7 @@ public UsersController(ApplicationDbContext context, IValidator<CreateUserDto> c
             IsVerified = entity.IsVerified,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt
-        };
+        });
     }
 
     // POST: api/Users
@@ -88,11 +85,13 @@ public UsersController(ApplicationDbContext context, IValidator<CreateUserDto> c
             FullName = createDto.FullName,
             Email = createDto.Email,
             PhoneNumber = createDto.PhoneNumber,
-            PasswordHash = createDto.Password,
+            PasswordHash = string.Empty,
             RoleId = createDto.RoleId,
+            IsVerified = false,
             IsActive = true,
             CreatedAt = System.DateTime.UtcNow
         };
+        entity.PasswordHash = new PasswordHasher<User>().HashPassword(entity, createDto.Password);
         
         _context.Users.Add(entity);
         await _context.SaveChangesAsync();

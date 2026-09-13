@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
-import { Sprout, MapPin, DollarSign, CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Sprout, MapPin, DollarSign, CheckCircle2, ArrowRight, ArrowLeft, Sparkles, Upload, AlertCircle, RefreshCw } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCropDefaultImage } from '../../services/apiClient';
 
 interface AddCropWizardProps {
   setActiveTab: (tab: string) => void;
 }
 
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 export const AddCropWizard: React.FC<AddCropWizardProps> = ({ setActiveTab }) => {
   const { addCrop } = useData();
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentStep, setCurrentStep] = useState(1);
 
   const [cropName, setCropName] = useState('Tomato');
@@ -26,7 +31,34 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({ setActiveTab }) =>
   const [expectedSellingDate, setExpectedSellingDate] = useState('2026-09-15');
   const [expectedPrice, setExpectedPrice] = useState('2500');
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setImageError('Invalid image type. Only JPG, PNG, and WebP files are supported.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setImageError('File size exceeds the 5MB maximum limit. Please select a smaller photo.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setImageFile(file);
+    const preview = URL.createObjectURL(file);
+    setImagePreview(preview);
+  };
 
   const validateStep = (step: number) => {
     const errs: Record<string, string> = {};
@@ -55,31 +87,41 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({ setActiveTab }) =>
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handlePublish = () => {
-    addCrop({
-      farmerId: user?.id || 'usr-farmer-1',
-      farmerName: user?.name || 'Ramesh Patel',
-      cropName,
-      variety,
-      quantity: Number(quantity),
-      unit,
-      grade,
-      location: farmLocation,
-      district,
-      state,
-      pickupLocation,
-      expectedPrice: Number(expectedPrice),
-      currentMarketPrice: 2450,
-      aiFairPriceMin: 2400,
-      aiFairPriceMax: 2600,
-      status: 'Active',
-      harvestDate: new Date().toISOString().split('T')[0],
-      expectedSellingDate,
-      image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=500',
-      distanceKm: 28
-    });
+  const handlePublish = async () => {
+    if (isPublishing) return;
+    setIsPublishing(true);
+    setImageError(null);
 
-    setActiveTab('farmer-listings');
+    try {
+      await addCrop({
+        farmerId: user?.id || 'usr-farmer-1',
+        farmerName: user?.name || 'Ramesh Patel',
+        cropName,
+        variety,
+        quantity: Number(quantity),
+        unit,
+        grade,
+        location: farmLocation,
+        district,
+        state,
+        pickupLocation,
+        expectedPrice: Number(expectedPrice),
+        currentMarketPrice: Number(expectedPrice) || 2450,
+        aiFairPriceMin: Math.round((Number(expectedPrice) || 2500) * 0.95),
+        aiFairPriceMax: Math.round((Number(expectedPrice) || 2500) * 1.05),
+        status: 'Active',
+        harvestDate: new Date().toISOString().split('T')[0],
+        expectedSellingDate,
+        image: imagePreview || getCropDefaultImage(cropName),
+        distanceKm: 28
+      }, imageFile);
+
+      setActiveTab('farmer-listings');
+    } catch (err: any) {
+      setImageError(err?.message || 'Failed to upload crop listing. Please try again.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -209,6 +251,50 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({ setActiveTab }) =>
                   ))}
                 </div>
               </div>
+
+              <div className="sm:col-span-2 space-y-2">
+                <label className="text-xs font-bold text-[#143601] uppercase tracking-wider block">
+                  Crop Image (Optional)
+                </label>
+                
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-[#e2ebd9]">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#f4f8f0] border border-[#e2ebd9] shrink-0 flex items-center justify-center">
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Crop Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Sprout className="w-8 h-8 text-[#538d22]/40" />
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 flex-1 text-xs">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="crop-image-upload-input"
+                    />
+                    <label
+                      htmlFor="crop-image-upload-input"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-bold cursor-pointer transition-colors"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{imagePreview ? 'Change Photo' : 'Upload Crop Photo'}</span>
+                    </label>
+                    <p className="text-[11px] text-[#4b633d]">
+                      JPEG, PNG, or WebP up to 5 MB.
+                    </p>
+                  </div>
+                </div>
+
+                {imageError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs font-bold">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{imageError}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -312,7 +398,13 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({ setActiveTab }) =>
             <div className="p-6 rounded-3xl bg-[#f4f8f0] border border-[#e2ebd9] shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">🍅</span>
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white border border-[#e2ebd9] shrink-0 flex items-center justify-center">
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">🍅</span>
+                    )}
+                  </div>
                   <div>
                     <h4 className="text-lg font-black text-[#143601]">{cropName} ({variety})</h4>
                     <p className="text-xs text-[#4b633d] font-semibold">{farmLocation} • {grade}</p>
@@ -343,12 +435,29 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({ setActiveTab }) =>
               </div>
             </div>
 
+            {imageError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs font-bold">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{imageError}</span>
+              </div>
+            )}
+
             <button
               onClick={handlePublish}
-              className="w-full py-4 px-6 rounded-2xl bg-[#143601] hover:bg-[#1a4301] text-white font-black text-base shadow-xl shadow-[#143601]/20 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2"
+              disabled={isPublishing}
+              className="w-full py-4 px-6 rounded-2xl bg-[#143601] hover:bg-[#1a4301] text-white font-black text-base shadow-xl shadow-[#143601]/20 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <span>Publish Crop Listing</span>
-              <CheckCircle2 className="w-5 h-5 text-[#aad576]" />
+              {isPublishing ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin text-[#aad576]" />
+                  <span>Publishing Listing & Uploading Photo...</span>
+                </>
+              ) : (
+                <>
+                  <span>Publish Crop Listing</span>
+                  <CheckCircle2 className="w-5 h-5 text-[#aad576]" />
+                </>
+              )}
             </button>
           </div>
         )}

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Linq;
 using FluentValidation;
 using System.Collections.Generic;
@@ -19,24 +20,41 @@ namespace Controllers;
 public class BuyerRecommendationsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly Services.BuyerRecommendationService _recommendationService;
 
     
 
         private readonly IValidator<CreateBuyerRecommendationDto> _createValidator;
     private readonly IValidator<UpdateBuyerRecommendationDto> _updateValidator;
 
-public BuyerRecommendationsController(ApplicationDbContext context, IValidator<CreateBuyerRecommendationDto> createValidator, IValidator<UpdateBuyerRecommendationDto> updateValidator)
+public BuyerRecommendationsController(ApplicationDbContext context, Services.BuyerRecommendationService recommendationService, IValidator<CreateBuyerRecommendationDto> createValidator, IValidator<UpdateBuyerRecommendationDto> updateValidator)
     {
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _context = context;
+        _recommendationService = recommendationService;
     }
 
     // GET: api/BuyerRecommendations
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<BuyerRecommendationDto>>>> GetBuyerRecommendations()
     {
-        var entities = await _context.BuyerRecommendations.ToListAsync();
+        var userId = int.TryParse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier), out var uid)
+            ? uid
+            : (int?)null;
+        if (userId == null) return Unauthorized();
+
+        var buyerId = await _context.Buyers
+            .Where(b => b.UserId == userId.Value)
+            .Select(b => (int?)b.BuyerId)
+            .FirstOrDefaultAsync();
+        if (buyerId == null) return Forbid();
+
+        await _recommendationService.EnsureRecommendationsAsync();
+
+        var entities = await _context.BuyerRecommendations
+            .Where(e => e.BuyerId == buyerId.Value)
+            .ToListAsync();
             
         var dtos = entities.Select(e => new BuyerRecommendationDto
         {
@@ -93,6 +111,13 @@ public BuyerRecommendationsController(ApplicationDbContext context, IValidator<C
         if (!createValidationResult.IsValid)
         {
             return BadRequest(DTOs.ApiResponse<object>.ErrorResponse("Validation failed", createValidationResult.Errors.Select(e => e.ErrorMessage).ToList()));
+        }
+
+        var duplicate = await _context.BuyerRecommendations.AnyAsync(e =>
+            e.CropListingId == createDto.CropListingId && e.BuyerId == createDto.BuyerId);
+        if (duplicate)
+        {
+            return Conflict(DTOs.ApiResponse<object>.ErrorResponse("A recommendation already exists for this crop listing and buyer."));
         }
 
         var entity = new BuyerRecommendation

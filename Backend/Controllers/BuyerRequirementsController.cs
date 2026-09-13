@@ -33,6 +33,7 @@ public BuyerRequirementsController(ApplicationDbContext context, IValidator<Crea
     }
 
     // GET: api/BuyerRequirements
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<BuyerRequirementDto>>> GetBuyerRequirements()
     {
@@ -59,6 +60,7 @@ public BuyerRequirementsController(ApplicationDbContext context, IValidator<Crea
     }
 
     // GET: api/BuyerRequirements/5
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<ActionResult<BuyerRequirementDto>> GetBuyerRequirement(int id)
     {

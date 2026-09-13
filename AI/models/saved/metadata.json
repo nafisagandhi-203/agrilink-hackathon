@@ -1,5 +1,5 @@
 {
-  "last_daily_retrain": "2026-09-12 10:15:09",
+  "last_daily_retrain": "2026-09-12 22:39:22",
   "pipeline_version": "1.1.0",
   "results": {
     "Tomato": {
@@ -8,7 +8,7 @@
       "baseline_mae": 10.37,
       "ml_mae": 8.79,
       "r2": 0.5309,
-      "last_retrained": "2026-09-12 10:15:09"
+      "last_retrained": "2026-09-12 22:39:22"
     }
   }
 }

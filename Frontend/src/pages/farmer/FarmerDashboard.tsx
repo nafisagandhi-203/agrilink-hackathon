@@ -33,32 +33,32 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ setActiveTab }
     <div className="space-y-6 animate-in fade-in duration-300">
       
       {/* Top Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#f4f8f0] p-5 sm:p-6 rounded-3xl border border-[#e2ebd9] shadow-2xs">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#143601] text-xs font-extrabold border border-[#e2ebd9] mb-2 shadow-2xs">
+      <div className="gradient-banner-farmer p-6 sm:p-7 rounded-3xl text-white flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#538d22]/30 text-[#aad576] text-xs font-extrabold border border-[#73a942]/40 backdrop-blur-xs">
             <span>👨‍🌾</span>
             <span>{t('farmerWorkspace')}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#143601]">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
             {t('goodMorningFarmer')}
           </h1>
-          <p className="text-xs text-[#4b633d] font-semibold">
+          <p className="text-xs sm:text-sm text-[#aad576] font-medium max-w-xl">
             {t('farmerHeaderSub')}
           </p>
         </div>
 
         <button
           onClick={() => setActiveTab('farmer-add-crop')}
-          className="px-5 py-3 rounded-2xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-xs shadow-md shadow-[#143601]/20 transition-all hover:scale-[1.02] flex items-center gap-1.5 shrink-0 cursor-pointer"
+          className="px-6 py-3.5 rounded-2xl bg-white hover:bg-[#f4f8f0] text-[#143601] font-extrabold text-xs shadow-xl flex items-center gap-2 shrink-0 transition-transform hover:scale-105 cursor-pointer border border-[#e2ebd9]"
         >
-          <PlusCircle className="w-4 h-4 text-[#aad576]" />
+          <PlusCircle className="w-4 h-4 text-[#538d22]" />
           <span>{t('addCrop')}</span>
         </button>
       </div>
 
       {/* WEATHER ALERT SYSTEM BANNER */}
       {weatherAlert && !dismissedAlert && (
-        <div className="p-5 rounded-3xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-xs animate-in fade-in duration-200">
+        <div className="p-5 rounded-3xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3 shadow-sm animate-in fade-in duration-200">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-2xl bg-amber-200 text-amber-900 shrink-0">
@@ -116,59 +116,79 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ setActiveTab }
         </div>
       )}
 
-      {/* Quick Stat Cards */}
+      {/* Quick Stat Cards - Professional Color System */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         
         <div
           onClick={() => setActiveTab('farmer-listings')}
-          className="p-4 rounded-2xl bg-white border border-[#e2ebd9] shadow-2xs hover:border-[#538d22] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer space-y-1 group"
+          className="p-5 rounded-3xl dashboard-stat-card cursor-pointer space-y-3 group relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-[#538d22]">{t('myCrops')}</span>
-            <div className="p-1.5 rounded-lg bg-[#f4f8f0] text-[#143601] group-hover:bg-[#538d22] group-hover:text-white transition-colors">
-              <Sprout className="w-4 h-4" />
+            <span className="text-xs font-black text-[#538d22] uppercase tracking-wider">{t('myCrops')}</span>
+            <div className="w-9 h-9 rounded-xl bg-[#f4f8f0] text-[#143601] group-hover:bg-[#143601] group-hover:text-[#aad576] flex items-center justify-center transition-colors shadow-2xs">
+              <Sprout className="w-5 h-5 text-[#538d22] group-hover:text-[#aad576]" />
             </div>
           </div>
-          <span className="text-2xl font-black text-[#143601] block">{crops.length}</span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-black text-[#143601]">{crops.length}</span>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+              Active Listings
+            </span>
+          </div>
         </div>
 
         <div
           onClick={() => setActiveTab('farmer-transactions')}
-          className="p-4 rounded-2xl bg-white border border-[#e2ebd9] shadow-2xs hover:border-[#538d22] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer space-y-1 group"
+          className="p-5 rounded-3xl dashboard-stat-card cursor-pointer space-y-3 group relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-[#538d22]">{t('buyerOffersCount')}</span>
-            <div className="p-1.5 rounded-lg bg-[#f4f8f0] text-[#143601] group-hover:bg-[#538d22] group-hover:text-white transition-colors">
-              <Users className="w-4 h-4" />
+            <span className="text-xs font-black text-blue-700 uppercase tracking-wider">{t('buyerOffersCount')}</span>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-900 group-hover:bg-blue-900 group-hover:text-blue-200 flex items-center justify-center transition-colors shadow-2xs">
+              <Users className="w-5 h-5 text-blue-700 group-hover:text-blue-200" />
             </div>
           </div>
-          <span className="text-2xl font-black text-[#143601] block">{buyerOffers.length}</span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-black text-[#143601]">{buyerOffers.length}</span>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
+              Received
+            </span>
+          </div>
         </div>
 
         <div
           onClick={() => setActiveTab('farmer-ai-price')}
-          className="p-4 rounded-2xl bg-white border border-[#e2ebd9] shadow-2xs hover:border-[#538d22] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer space-y-1 group"
+          className="p-5 rounded-3xl dashboard-stat-card cursor-pointer space-y-3 group relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-[#538d22]">{t('marketPrices')}</span>
-            <div className="p-1.5 rounded-lg bg-[#f4f8f0] text-[#143601] group-hover:bg-[#538d22] group-hover:text-white transition-colors">
-              <TrendingUp className="w-4 h-4" />
+            <span className="text-xs font-black text-emerald-800 uppercase tracking-wider">{t('marketPrices')}</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#143601] group-hover:bg-[#143601] group-hover:text-[#aad576] flex items-center justify-center transition-colors shadow-2xs">
+              <TrendingUp className="w-5 h-5 text-[#538d22] group-hover:text-[#aad576]" />
             </div>
           </div>
-          <span className="text-2xl font-black text-[#143601] block">₹2,450 / Qtl</span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-black text-[#143601]">₹2,450 / Qtl</span>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+              ↑ 8.4% Live
+            </span>
+          </div>
         </div>
 
         <div
           onClick={() => setActiveTab('farmer-transactions')}
-          className="p-4 rounded-2xl bg-white border border-[#e2ebd9] shadow-2xs hover:border-[#538d22] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer space-y-1 group"
+          className="p-5 rounded-3xl dashboard-stat-card cursor-pointer space-y-3 group relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-[#538d22]">{t('activeDeals')}</span>
-            <div className="p-1.5 rounded-lg bg-[#f4f8f0] text-[#143601] group-hover:bg-[#538d22] group-hover:text-white transition-colors">
-              <Receipt className="w-4 h-4" />
+            <span className="text-xs font-black text-amber-800 uppercase tracking-wider">{t('activeDeals')}</span>
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-900 group-hover:bg-amber-900 group-hover:text-amber-100 flex items-center justify-center transition-colors shadow-2xs">
+              <Receipt className="w-5 h-5 text-amber-700 group-hover:text-amber-100" />
             </div>
           </div>
-          <span className="text-2xl font-black text-[#143601] block">{activeTx.length}</span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-3xl font-black text-[#143601]">{activeTx.length}</span>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
+              In Transit
+            </span>
+          </div>
         </div>
 
       </div>

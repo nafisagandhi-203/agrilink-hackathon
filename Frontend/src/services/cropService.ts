@@ -1,106 +1,133 @@
 import type { CropListing } from '../types';
-import { mockCrops } from '../data/mockData';
 import { apiClient } from './apiClient';
+
+const mapCropListing = (c: any): CropListing => ({
+  id: String(c.cropListingId || c.id || Math.random()),
+  farmerId: String(c.farmerId || '1'),
+  farmerName: c.farmerName || 'Local Farmer',
+  cropName: c.cropName || 'Crop',
+  variety: c.qualityGrade || 'Standard',
+  quantity: Number(c.quantity || 0),
+  unit: c.unit || 'kg',
+  grade: (c.qualityGrade as any) || 'Grade A',
+  location: c.location || `${c.district || 'Rajkot'}, ${c.state || 'Gujarat'}`,
+  district: c.district || 'Rajkot',
+  state: c.state || 'Gujarat',
+  pickupLocation: c.location || `${c.district || 'Rajkot'}, ${c.state || 'Gujarat'}`,
+  expectedPrice: Number(c.askingPrice || 0),
+  currentMarketPrice: Number(c.askingPrice || 0),
+  aiFairPriceMin: Math.round(Number(c.askingPrice || 0) * 0.95),
+  aiFairPriceMax: Math.round(Number(c.askingPrice || 0) * 1.15),
+  status: (c.status as any) || 'Active',
+  harvestDate: c.createdAt ? String(c.createdAt).split('T')[0] : new Date().toISOString().split('T')[0],
+  expectedSellingDate: c.expectedSellingDate ? String(c.expectedSellingDate).split('T')[0] : new Date().toISOString().split('T')[0],
+  image: apiClient.resolveImageUrl(c.imageUrl || c.image, c.cropName),
+  distanceKm: 15,
+  createdAt: c.createdAt ? String(c.createdAt).split('T')[0] : new Date().toISOString().split('T')[0]
+});
 
 export const cropService = {
   async getCrops(): Promise<CropListing[]> {
-    // Attempt real backend fetch
-    const remoteCrops = await apiClient.get<any[]>('/crops');
-    if (remoteCrops && Array.isArray(remoteCrops) && remoteCrops.length > 0) {
-      const mapped: CropListing[] = remoteCrops.map((c: any, index: number) => ({
-        id: c.cropId ? `crop-${c.cropId}` : `crop-rem-${index}`,
-        farmerId: c.farmerId ? `usr-${c.farmerId}` : 'usr-farmer-1',
-        farmerName: c.farmerName || 'Verified Farmer',
-        cropName: c.cropName || 'Produce',
-        variety: c.variety || 'Standard',
-        quantity: c.quantity || 100,
-        unit: c.unit || 'quintal',
-        grade: (c.grade as any) || 'Grade A',
-        location: c.location || 'Rajkot, Gujarat',
-        district: c.district || 'Rajkot',
-        state: c.state || 'Gujarat',
-        pickupLocation: c.pickupLocation || 'Farm Gate, Rajkot',
-        expectedPrice: c.pricePerUnit || c.expectedPrice || 2500,
-        currentMarketPrice: c.currentMarketPrice || c.pricePerUnit || 2400,
-        aiFairPriceMin: c.aiFairPriceMin || 2300,
-        aiFairPriceMax: c.aiFairPriceMax || 2700,
-        status: (c.status as any) || 'Active',
-        harvestDate: c.harvestDate || new Date().toISOString().split('T')[0],
-        expectedSellingDate: c.expectedSellingDate || new Date().toISOString().split('T')[0],
-        image: c.image || 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80',
-        distanceKm: c.distanceKm || 12,
-        createdAt: c.createdAt || new Date().toISOString().split('T')[0]
-      }));
-      localStorage.setItem('agripulse_crops', JSON.stringify(mapped));
-      return mapped;
+    try {
+      const data = await apiClient.get<any[]>('/croplistings');
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map(mapCropListing);
+      }
+    } catch (e) {
+      console.warn('cropService.getCrops backend error:', e);
     }
-
-    const saved = localStorage.getItem('agripulse_crops');
-    return saved ? JSON.parse(saved) : mockCrops;
+    return [];
   },
 
   async getCropById(id: string): Promise<CropListing | null> {
+    try {
+      const data = await apiClient.get<any>(`/croplistings/${id}`);
+      if (data) return mapCropListing(data);
+    } catch (e) {
+      console.warn('cropService.getCropById backend error:', e);
+    }
     const crops = await this.getCrops();
     return crops.find((c) => c.id === id) || null;
   },
 
-  async createCrop(cropData: Omit<CropListing, 'id' | 'createdAt'>): Promise<CropListing> {
-    const newCrop: CropListing = {
-      ...cropData,
-      id: `crop-${Date.now()}`,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
+  async createCrop(cropData: Omit<CropListing, 'id' | 'createdAt'>, imageFile?: File | null): Promise<CropListing> {
+    try {
+      const cropNameToId: Record<string, number> = {
+        tomato: 1,
+        wheat: 2,
+        onion: 3,
+        cotton: 4,
+        potato: 5,
+        chilli: 6,
+        chili: 6,
+        cabbage: 7,
+        brinjal: 8,
+        eggplant: 8,
+        groundnut: 9,
+        peanut: 9,
+        soybean: 10,
+        soya: 10
+      };
+      const normalizedName = (cropData.cropName || '').toLowerCase().trim();
+      let matchedCropId = 1;
+      for (const [key, id] of Object.entries(cropNameToId)) {
+        if (normalizedName.includes(key) || key.includes(normalizedName)) {
+          matchedCropId = id;
+          break;
+        }
+      }
 
-    // Synchronize to backend Web API
-    apiClient.post('/crops', {
-      cropName: newCrop.cropName,
-      commodityGroup: 'Grains',
-      description: `${newCrop.variety} - ${newCrop.grade}`,
-      isActive: true
-    }).catch((err) => {
-      console.info('Backend crop sync background notification:', err);
-    });
+      const formData = new FormData();
+      formData.append('CropId', String(matchedCropId));
+      formData.append('Quantity', String(cropData.quantity));
+      formData.append('Unit', cropData.unit || 'kg');
+      formData.append('QualityGrade', cropData.grade || 'Grade A');
+      formData.append('Location', cropData.location || 'Rajkot');
+      formData.append('District', cropData.district || 'Rajkot');
+      formData.append('State', cropData.state || 'Gujarat');
+      formData.append('AskingPrice', String(cropData.expectedPrice));
+      formData.append('ExpectedSellingDate', cropData.expectedSellingDate || new Date().toISOString());
 
-    const crops = await this.getCrops();
-    const updated = [newCrop, ...crops];
-    localStorage.setItem('agripulse_crops', JSON.stringify(updated));
-    return newCrop;
+      if (imageFile) {
+        formData.append('Image', imageFile);
+      }
+
+      const res = await apiClient.uploadFormData<any>('/croplistings', formData);
+      return mapCropListing(res);
+    } catch (e) {
+      console.warn('cropService.createCrop backend error:', e);
+      return {
+        ...cropData,
+        id: `crop-${Date.now()}`,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+    }
   },
 
   async updateCrop(id: string, updates: Partial<CropListing>): Promise<CropListing | null> {
-    const numericId = parseInt(id.replace('crop-', ''), 10);
-    if (!isNaN(numericId)) {
-      apiClient.put(`/crops/${numericId}`, {
-        cropId: numericId,
-        cropName: updates.cropName,
-        commodityGroup: 'Grains',
-        description: updates.variety,
-        isActive: updates.status === 'Active'
-      }).catch(() => {});
+    try {
+      const res = await apiClient.put<any>(`/croplistings/${id}`, updates);
+      if (res) return mapCropListing(res);
+    } catch (e) {
+      console.warn('cropService.updateCrop backend error:', e);
     }
-
-    const crops = await this.getCrops();
-    let updatedCrop: CropListing | null = null;
-    const updatedList = crops.map((c) => {
-      if (c.id === id) {
-        updatedCrop = { ...c, ...updates };
-        return updatedCrop;
-      }
-      return c;
-    });
-    localStorage.setItem('agripulse_crops', JSON.stringify(updatedList));
-    return updatedCrop;
+    return null;
   },
 
   async deleteCrop(id: string): Promise<boolean> {
-    const numericId = parseInt(id.replace('crop-', ''), 10);
-    if (!isNaN(numericId)) {
-      apiClient.delete(`/crops/${numericId}`).catch(() => {});
+    try {
+      await apiClient.delete(`/croplistings/${id}`);
+      return true;
+    } catch (e) {
+      console.warn('cropService.deleteCrop backend error:', e);
+      return false;
     }
+  },
 
-    const crops = await this.getCrops();
-    const filtered = crops.filter((c) => c.id !== id);
-    localStorage.setItem('agripulse_crops', JSON.stringify(filtered));
-    return true;
+  async uploadCropImage(id: string, imageFile: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    const res = await apiClient.uploadFormData<any>(`/croplistings/${id}/image`, formData);
+    return apiClient.resolveImageUrl(res?.imageUrl || res?.image);
   }
 };

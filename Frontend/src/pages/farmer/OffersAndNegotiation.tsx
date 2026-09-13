@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Send, Check, X, RefreshCw, MessageSquare } from 'lucide-react';
+import { Send, Check, X, RefreshCw, MessageSquare, Eye } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { ViewProfileModal } from '../../components/ViewProfileModal';
 
 interface OffersAndNegotiationProps {
   setActiveTab: (tab: string) => void;
@@ -8,6 +10,8 @@ interface OffersAndNegotiationProps {
 
 export const OffersAndNegotiation: React.FC<OffersAndNegotiationProps> = ({ setActiveTab }) => {
   const { buyerOffers } = useData();
+  const { t } = useLanguage();
+
   const [activeOfferId, setActiveOfferId] = useState(buyerOffers[0]?.id || 'off-1');
   const [messages, setMessages] = useState([
     { id: 1, sender: 'buyer', text: 'Hello Rameshji, we are interested in your 500 kg Grade A Tomato.' },
@@ -16,6 +20,7 @@ export const OffersAndNegotiation: React.FC<OffersAndNegotiationProps> = ({ setA
   ]);
   const [inputMsg, setInputMsg] = useState('');
   const [dealStatus, setDealStatus] = useState<'pending' | 'accepted' | 'rejected'>('pending');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const selectedOffer = buyerOffers.find((o) => o.id === activeOfferId) || buyerOffers[0];
 
@@ -33,7 +38,7 @@ export const OffersAndNegotiation: React.FC<OffersAndNegotiationProps> = ({ setA
           <MessageSquare className="w-3.5 h-3.5 text-[#538d22]" />
           <span>Real-Time Deal Room</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-[#143601]">Messages & Negotiation</h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-[#143601]">{t('offersAndNegotiation')}</h1>
         <p className="text-xs text-[#4b633d] font-medium">Direct offer negotiation with wholesale buyers with instant counter-offer cards.</p>
       </div>
 
@@ -41,29 +46,33 @@ export const OffersAndNegotiation: React.FC<OffersAndNegotiationProps> = ({ setA
         
         {/* Left: Active Offers List */}
         <div className="border-r border-[#e2ebd9] p-4 space-y-3 bg-[#f4f8f0]/50">
-          <h2 className="text-[10px] font-black text-[#538d22] uppercase tracking-wider">Recent Offers</h2>
+          <h2 className="text-[10px] font-black text-[#538d22] uppercase tracking-wider">{t('pendingOffers')}</h2>
           <div className="space-y-2">
-            {buyerOffers.map((off) => (
-              <button
-                key={off.id}
-                onClick={() => setActiveOfferId(off.id)}
-                className={`w-full p-3 rounded-2xl text-left border transition-all ${
-                  activeOfferId === off.id
-                    ? 'bg-white border-[#538d22] shadow-xs font-extrabold text-[#143601]'
-                    : 'bg-white/80 border-[#e2ebd9] hover:bg-[#f4f8f0] text-[#4b633d]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-xs text-[#143601] truncate">{off.buyerName}</span>
-                  <span className="text-[10px] font-black text-[#538d22] bg-[#f4f8f0] px-1.5 py-0.2 rounded border border-[#e2ebd9]">
-                    ₹{off.offeredPrice}/q
-                  </span>
-                </div>
-                <p className="text-[11px] text-[#4b633d] font-medium mt-1">
-                  {off.cropName} • {off.quantity} {off.unit}
-                </p>
-              </button>
-            ))}
+            {buyerOffers.length === 0 ? (
+              <p className="text-xs text-[#4b633d] p-3 text-center">No active buyer offers right now.</p>
+            ) : (
+              buyerOffers.map((off) => (
+                <button
+                  key={off.id}
+                  onClick={() => setActiveOfferId(off.id)}
+                  className={`w-full p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                    activeOfferId === off.id
+                      ? 'bg-white border-[#538d22] shadow-xs font-extrabold text-[#143601]'
+                      : 'bg-white/80 border-[#e2ebd9] hover:bg-[#f4f8f0] text-[#4b633d]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs text-[#143601] truncate">{off.buyerName}</span>
+                    <span className="text-[10px] font-black text-[#538d22] bg-[#f4f8f0] px-1.5 py-0.2 rounded border border-[#e2ebd9]">
+                      ₹{off.offeredPrice}/q
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#4b633d] font-medium mt-1">
+                    {off.cropName} • {off.quantity} {off.unit}
+                  </p>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
@@ -73,12 +82,25 @@ export const OffersAndNegotiation: React.FC<OffersAndNegotiationProps> = ({ setA
           {/* Chat Header */}
           <div className="p-4 border-b border-[#e2ebd9] bg-[#f4f8f0] flex items-center justify-between">
             <div>
-              <h3 className="font-black text-sm text-[#143601]">{selectedOffer?.buyerName || 'Shree Fresh Foods'}</h3>
-              <p className="text-[11px] text-[#4b633d] font-semibold">Tomato • 500 kg • Rajkot APMC</p>
+              <h3 className="font-black text-sm text-[#143601] flex items-center gap-2">
+                <span>{selectedOffer?.buyerName || 'No Active Offer'}</span>
+                {selectedOffer && (
+                  <button
+                    onClick={() => setIsProfileOpen(true)}
+                    className="p-1 rounded-lg bg-white hover:bg-[#e2ebd9] border border-[#e2ebd9] text-[#538d22] cursor-pointer"
+                    title={t('viewProfile')}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </h3>
+              <p className="text-[11px] text-[#4b633d] font-semibold">
+                {selectedOffer ? `${selectedOffer.cropName} • ${selectedOffer.quantity} ${selectedOffer.unit} • Delivery: ${selectedOffer.deliveryDate}` : 'No active offer selected'}
+              </p>
             </div>
             {dealStatus === 'accepted' && (
               <span className="px-3 py-1 rounded-full text-xs font-black bg-[#143601] text-[#aad576]">
-                ✓ Deal Confirmed
+                ✓ {t('dealConfirmed')}
               </span>
             )}
           </div>
@@ -103,43 +125,45 @@ export const OffersAndNegotiation: React.FC<OffersAndNegotiationProps> = ({ setA
             ))}
 
             {/* Offer Card embedded inside chat */}
-            <div className="p-4 rounded-2xl bg-[#f4f8f0] border border-[#e2ebd9] space-y-3 max-w-sm mx-auto my-2 shadow-2xs">
-              <div className="text-center space-y-0.5">
-                <span className="text-[10px] font-black text-[#538d22] uppercase tracking-wider block">Buyer Official Offer Card</span>
-                <span className="text-2xl font-black text-[#143601]">₹{selectedOffer?.offeredPrice || 2550} / Qtl</span>
-                <p className="text-xs text-[#4b633d] font-semibold">500 kg Grade A Tomato</p>
-              </div>
+            {selectedOffer && (
+              <div className="p-4 rounded-2xl bg-[#f4f8f0] border border-[#e2ebd9] space-y-3 max-w-sm mx-auto my-2 shadow-2xs">
+                <div className="text-center space-y-0.5">
+                  <span className="text-[10px] font-black text-[#538d22] uppercase tracking-wider block">Buyer Official Offer Card</span>
+                  <span className="text-2xl font-black text-[#143601]">₹{selectedOffer.offeredPrice} / Qtl</span>
+                  <p className="text-xs text-[#4b633d] font-semibold">{selectedOffer.quantity} {selectedOffer.unit} {selectedOffer.cropName}</p>
+                </div>
 
-              {dealStatus === 'pending' ? (
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    onClick={() => {
-                      setDealStatus('accepted');
-                      setActiveTab('farmer-transactions');
-                    }}
-                    className="flex-1 py-2 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-xs shadow flex items-center justify-center gap-1"
-                  >
-                    <Check className="w-3.5 h-3.5 text-[#aad576]" /> Accept
-                  </button>
-                  <button
-                    onClick={() => setDealStatus('rejected')}
-                    className="flex-1 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 flex items-center justify-center gap-1"
-                  >
-                    <X className="w-3.5 h-3.5" /> Reject
-                  </button>
-                  <button
-                    onClick={() => setInputMsg('I counter offer ₹2,580 / quintal.')}
-                    className="py-2 px-3 rounded-xl bg-white border border-[#e2ebd9] text-[#143601] font-extrabold text-xs flex items-center justify-center gap-1"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-[#538d22]" /> Counter
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center text-xs font-black text-[#143601]">
-                  {dealStatus === 'accepted' ? '✓ Offer Accepted! Proceeding to Transport' : '✕ Offer Rejected'}
-                </div>
-              )}
-            </div>
+                {dealStatus === 'pending' ? (
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => {
+                        setDealStatus('accepted');
+                        setActiveTab('farmer-transactions');
+                      }}
+                      className="flex-1 py-2 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-extrabold text-xs shadow flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Check className="w-3.5 h-3.5 text-[#aad576]" /> Accept
+                    </button>
+                    <button
+                      onClick={() => setDealStatus('rejected')}
+                      className="flex-1 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" /> Reject
+                    </button>
+                    <button
+                      onClick={() => setInputMsg(`I counter offer ₹${selectedOffer.offeredPrice + 50} / quintal.`)}
+                      className="py-2 px-3 rounded-xl bg-white border border-[#e2ebd9] text-[#143601] font-extrabold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-[#538d22]" /> Counter
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center text-xs font-black text-[#143601]">
+                    {dealStatus === 'accepted' ? '✓ Offer Accepted! Proceeding to Transport' : '✕ Offer Rejected'}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Chat Input Bar */}
@@ -154,7 +178,7 @@ export const OffersAndNegotiation: React.FC<OffersAndNegotiationProps> = ({ setA
             />
             <button
               onClick={handleSendMessage}
-              className="p-2.5 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-bold transition-all shadow"
+              className="p-2.5 rounded-xl bg-[#143601] hover:bg-[#1a4301] text-white font-bold transition-all shadow cursor-pointer"
             >
               <Send className="w-4 h-4 text-[#aad576]" />
             </button>
@@ -163,6 +187,24 @@ export const OffersAndNegotiation: React.FC<OffersAndNegotiationProps> = ({ setA
         </div>
 
       </div>
+
+      {/* View Profile Modal */}
+      <ViewProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        profileData={selectedOffer ? {
+          name: selectedOffer.buyerName,
+          role: 'buyer',
+          phone: '+91 98123 45678',
+          email: `${selectedOffer.buyerName.toLowerCase().replace(/\s+/g, '')}@agripulse.in`,
+          location: 'Rajkot APMC Mandi, Gujarat',
+          verified: selectedOffer.buyerVerified,
+          businessDetails: {
+            businessName: selectedOffer.buyerName,
+            gstNumber: '24AAACB1234C1Z5'
+          }
+        } : null}
+      />
 
     </div>
   );

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Linq;
 using FluentValidation;
 using System.Collections.Generic;
@@ -36,7 +37,20 @@ public SellingInsightsController(ApplicationDbContext context, IValidator<Create
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<SellingInsightDto>>>> GetSellingInsights()
     {
-        var entities = await _context.SellingInsights.ToListAsync();
+        var userId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid)
+            ? uid
+            : (int?)null;
+        if (userId == null) return Unauthorized();
+
+        var farmerId = await _context.Farmers
+            .Where(f => f.UserId == userId.Value)
+            .Select(f => (int?)f.FarmerId)
+            .FirstOrDefaultAsync();
+        if (farmerId == null) return Forbid();
+
+        var entities = await _context.SellingInsights
+            .Where(e => e.CropListing != null && e.CropListing.FarmerId == farmerId.Value)
+            .ToListAsync();
             
         var dtos = entities.Select(e => new SellingInsightDto
         {

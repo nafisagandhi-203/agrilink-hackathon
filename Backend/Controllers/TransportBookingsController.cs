@@ -1,185 +1,181 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Data;
 using Models;
 using Models.Enums;
 using DTOs;
+using Services;
 
 namespace Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize(Roles = "Farmer,Buyer,Admin")]
 public class TransportBookingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITransportService _transportService;
 
-    public TransportBookingsController(ApplicationDbContext context)
+    public TransportBookingsController(ApplicationDbContext context, ITransportService transportService)
     {
         _context = context;
+        _transportService = transportService;
     }
 
-    // GET: api/TransportBookings
+    private int? CurrentUserId =>
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : (int?)null;
+
+    private async Task<int?> GetFarmerIdAsync(int userId) =>
+        (await _context.Farmers.FirstOrDefaultAsync(f => f.UserId == userId))?.FarmerId;
+
+    private async Task<int?> GetBuyerIdAsync(int userId) =>
+        (await _context.Buyers.FirstOrDefaultAsync(b => b.UserId == userId))?.BuyerId;
+
+    private IQueryable<TransportBooking> BookingQuery() => _context.TransportBookings
+        .Include(tb => tb.TransportProvider)
+        .Include(tb => tb.Transaction)
+            .ThenInclude(t => t.Farmer).ThenInclude(f => f.User)
+        .Include(tb => tb.Transaction)
+            .ThenInclude(t => t.Buyer);
+
+    private static TransportBookingDto ToDto(TransportBooking e) => new TransportBookingDto
+    {
+        TransportBookingId = e.TransportBookingId,
+        TransactionId = e.TransactionId,
+        TransportProviderId = e.TransportProviderId,
+        TransportProviderName = e.TransportProvider?.Name ?? string.Empty,
+        VehicleType = e.TransportProvider?.VehicleType ?? string.Empty,
+        VehicleNumber = e.TransportProvider?.VehicleNumber ?? string.Empty,
+        PickupLocation = e.PickupLocation,
+        PickupLatitude = e.PickupLatitude,
+        PickupLongitude = e.PickupLongitude,
+        DeliveryLocation = e.DeliveryLocation,
+        DeliveryLatitude = e.DeliveryLatitude,
+        DeliveryLongitude = e.DeliveryLongitude,
+        CropQuantity = e.CropQuantity,
+        DistanceKm = e.DistanceKm,
+        DistanceNote = e.DistanceNote,
+        EstimatedFare = e.EstimatedFare,
+        EstimatedTravelTimeMinutes = e.EstimatedTravelTimeMinutes,
+        EstimatedTransportCost = e.EstimatedTransportCost,
+        AgreedTransportCost = e.AgreedTransportCost,
+        BookingStatus = e.BookingStatus.ToString(),
+        RequestedAt = e.RequestedAt,
+        ConfirmedAt = e.ConfirmedAt,
+        PickupAt = e.PickupAt,
+        DeliveredAt = e.DeliveredAt
+    };
+
+    // GET: api/TransportBookings (scoped to the transaction parties or the admin)
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<TransportBookingDto>>>> GetTransportBookings(
         [FromQuery] int? transactionId = null,
         [FromQuery] string? status = null)
     {
-        var query = _context.TransportBookings
-            .Include(tb => tb.TransportProvider)
-            .AsQueryable();
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized();
+
+        var query = BookingQuery();
+
+        if (!User.IsInRole("Admin"))
+        {
+            var farmerId = await GetFarmerIdAsync(userId.Value);
+            var buyerId = await GetBuyerIdAsync(userId.Value);
+            query = query.Where(tb =>
+                (farmerId.HasValue && tb.Transaction.FarmerId == farmerId.Value)
+                || (buyerId.HasValue && tb.Transaction.BuyerId == buyerId.Value));
+        }
 
         if (transactionId.HasValue)
-        {
             query = query.Where(tb => tb.TransactionId == transactionId.Value);
-        }
 
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<TransportBookingStatus>(status, true, out var parsedStatus))
-        {
             query = query.Where(tb => tb.BookingStatus == parsedStatus);
-        }
 
-        var entities = await query.ToListAsync();
-
-        var dtos = entities.Select(e => new TransportBookingDto
-        {
-            TransportBookingId = e.TransportBookingId,
-            TransactionId = e.TransactionId,
-            TransportProviderId = e.TransportProviderId,
-            TransportProviderName = e.TransportProvider?.Name ?? string.Empty,
-            VehicleType = e.TransportProvider?.VehicleType ?? string.Empty,
-            VehicleNumber = e.TransportProvider?.VehicleNumber ?? string.Empty,
-            PickupLocation = e.PickupLocation,
-            PickupLatitude = e.PickupLatitude,
-            PickupLongitude = e.PickupLongitude,
-            DeliveryLocation = e.DeliveryLocation,
-            DeliveryLatitude = e.DeliveryLatitude,
-            DeliveryLongitude = e.DeliveryLongitude,
-            CropQuantity = e.CropQuantity,
-            DistanceKm = e.DistanceKm,
-            EstimatedTravelTimeMinutes = e.EstimatedTravelTimeMinutes,
-            EstimatedTransportCost = e.EstimatedTransportCost,
-            AgreedTransportCost = e.AgreedTransportCost,
-            BookingStatus = e.BookingStatus.ToString(),
-            RequestedAt = e.RequestedAt,
-            ConfirmedAt = e.ConfirmedAt,
-            PickupAt = e.PickupAt,
-            DeliveredAt = e.DeliveredAt
-        });
-
-        return Ok(ApiResponse<IEnumerable<TransportBookingDto>>.SuccessResponse(dtos, "Transport bookings retrieved successfully"));
+        var entities = await query.OrderByDescending(tb => tb.RequestedAt).ToListAsync();
+        return Ok(ApiResponse<IEnumerable<TransportBookingDto>>.SuccessResponse(entities.Select(ToDto), "Transport bookings retrieved successfully"));
     }
 
     // GET: api/TransportBookings/5
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<TransportBookingDto>>> GetTransportBooking(int id)
     {
-        var e = await _context.TransportBookings
-            .Include(tb => tb.TransportProvider)
-            .FirstOrDefaultAsync(tb => tb.TransportBookingId == id);
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized();
 
-        if (e == null)
+        var booking = await BookingQuery().FirstOrDefaultAsync(tb => tb.TransportBookingId == id);
+        if (booking == null)
             return NotFound(ApiResponse<TransportBookingDto>.ErrorResponse("Transport booking not found"));
 
-        var dto = new TransportBookingDto
-        {
-            TransportBookingId = e.TransportBookingId,
-            TransactionId = e.TransactionId,
-            TransportProviderId = e.TransportProviderId,
-            TransportProviderName = e.TransportProvider?.Name ?? string.Empty,
-            VehicleType = e.TransportProvider?.VehicleType ?? string.Empty,
-            VehicleNumber = e.TransportProvider?.VehicleNumber ?? string.Empty,
-            PickupLocation = e.PickupLocation,
-            PickupLatitude = e.PickupLatitude,
-            PickupLongitude = e.PickupLongitude,
-            DeliveryLocation = e.DeliveryLocation,
-            DeliveryLatitude = e.DeliveryLatitude,
-            DeliveryLongitude = e.DeliveryLongitude,
-            CropQuantity = e.CropQuantity,
-            DistanceKm = e.DistanceKm,
-            EstimatedTravelTimeMinutes = e.EstimatedTravelTimeMinutes,
-            EstimatedTransportCost = e.EstimatedTransportCost,
-            AgreedTransportCost = e.AgreedTransportCost,
-            BookingStatus = e.BookingStatus.ToString(),
-            RequestedAt = e.RequestedAt,
-            ConfirmedAt = e.ConfirmedAt,
-            PickupAt = e.PickupAt,
-            DeliveredAt = e.DeliveredAt
-        };
+        if (!await CanAccessAsync(userId.Value, booking)) return Forbid();
 
-        return Ok(ApiResponse<TransportBookingDto>.SuccessResponse(dto, "Transport booking retrieved successfully"));
+        return Ok(ApiResponse<TransportBookingDto>.SuccessResponse(ToDto(booking), "Transport booking retrieved successfully"));
     }
 
-    // POST: api/TransportBookings
+    // POST: api/TransportBookings (only a party to the linked transaction may book transport)
     [HttpPost]
+    [Authorize(Roles = "Farmer,Buyer")]
     public async Task<ActionResult<ApiResponse<TransportBookingDto>>> CreateTransportBooking([FromBody] CreateTransportBookingDto request)
     {
-        var booking = new TransportBooking
-        {
-            TransactionId = request.TransactionId,
-            TransportProviderId = request.TransportProviderId,
-            PickupLocation = request.PickupLocation,
-            PickupLatitude = request.PickupLatitude,
-            PickupLongitude = request.PickupLongitude,
-            DeliveryLocation = request.DeliveryLocation,
-            DeliveryLatitude = request.DeliveryLatitude,
-            DeliveryLongitude = request.DeliveryLongitude,
-            CropQuantity = request.CropQuantity,
-            DistanceKm = request.DistanceKm,
-            EstimatedTravelTimeMinutes = request.EstimatedTravelTimeMinutes,
-            EstimatedTransportCost = request.EstimatedTransportCost,
-            AgreedTransportCost = request.AgreedTransportCost,
-            BookingStatus = TransportBookingStatus.Requested,
-            RequestedAt = DateTime.UtcNow
-        };
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized();
 
-        _context.TransportBookings.Add(booking);
-        await _context.SaveChangesAsync();
+        var transaction = await _context.Transactions.FindAsync(request.TransactionId);
+        if (transaction == null)
+            return NotFound(ApiResponse<TransportBookingDto>.ErrorResponse("Transaction not found"));
 
-        return CreatedAtAction(nameof(GetTransportBooking), new { id = booking.TransportBookingId },
-            ApiResponse<TransportBookingDto>.SuccessResponse(new TransportBookingDto
-            {
-                TransportBookingId = booking.TransportBookingId,
-                TransactionId = booking.TransactionId,
-                TransportProviderId = booking.TransportProviderId,
-                PickupLocation = booking.PickupLocation,
-                DeliveryLocation = booking.DeliveryLocation,
-                CropQuantity = booking.CropQuantity,
-                DistanceKm = booking.DistanceKm,
-                EstimatedTransportCost = booking.EstimatedTransportCost,
-                AgreedTransportCost = booking.AgreedTransportCost,
-                BookingStatus = booking.BookingStatus.ToString(),
-                RequestedAt = booking.RequestedAt
-            }, "Transport booking created successfully"));
+        if (!await IsParticipantAsync(userId.Value, transaction)) return Forbid();
+
+        var (booking, error) = await _transportService.CreateBookingAsync(request);
+        if (error != null)
+            return BadRequest(ApiResponse<TransportBookingDto>.ErrorResponse(error));
+
+        return CreatedAtAction(nameof(GetTransportBooking), new { id = booking!.TransportBookingId },
+            ApiResponse<TransportBookingDto>.SuccessResponse(ToDto(booking), "Transport booking created successfully"));
     }
 
     // PUT: api/TransportBookings/5/status
     [HttpPut("{id}/status")]
     public async Task<ActionResult<ApiResponse<TransportBookingDto>>> UpdateTransportBookingStatus(int id, [FromBody] UpdateTransportBookingStatusDto request)
     {
-        var booking = await _context.TransportBookings.FindAsync(id);
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized();
+
+        var booking = await BookingQuery().FirstOrDefaultAsync(tb => tb.TransportBookingId == id);
         if (booking == null)
             return NotFound(ApiResponse<TransportBookingDto>.ErrorResponse("Transport booking not found"));
 
-        if (!Enum.TryParse<TransportBookingStatus>(request.BookingStatus, true, out var newStatus))
+        if (!await CanAccessAsync(userId.Value, booking)) return Forbid();
+
+        var normalized = Regex.Replace(request.BookingStatus ?? string.Empty, @"[\s_-]+", string.Empty);
+        if (!Enum.TryParse<TransportBookingStatus>(normalized, true, out var newStatus))
             return BadRequest(ApiResponse<TransportBookingDto>.ErrorResponse("Invalid booking status"));
 
-        booking.BookingStatus = newStatus;
-        if (newStatus == TransportBookingStatus.Confirmed) booking.ConfirmedAt = DateTime.UtcNow;
-        if (newStatus == TransportBookingStatus.PickedUp) booking.PickupAt = DateTime.UtcNow;
-        if (newStatus == TransportBookingStatus.Delivered) booking.DeliveredAt = DateTime.UtcNow;
+        var (ok, statusError) = await _transportService.UpdateStatusAsync(booking, newStatus);
+        if (!ok)
+            return BadRequest(ApiResponse<TransportBookingDto>.ErrorResponse(statusError ?? "Invalid status transition"));
 
-        await _context.SaveChangesAsync();
+        return Ok(ApiResponse<TransportBookingDto>.SuccessResponse(ToDto(booking), "Transport booking status updated successfully"));
+    }
 
-        return Ok(ApiResponse<TransportBookingDto>.SuccessResponse(new TransportBookingDto
-        {
-            TransportBookingId = booking.TransportBookingId,
-            TransactionId = booking.TransactionId,
-            TransportProviderId = booking.TransportProviderId,
-            BookingStatus = booking.BookingStatus.ToString()
-        }, "Transport booking status updated successfully"));
+    private async Task<bool> IsParticipantAsync(int userId, Transaction transaction)
+    {
+        var farmerId = await GetFarmerIdAsync(userId);
+        var buyerId = await GetBuyerIdAsync(userId);
+        return (farmerId.HasValue && transaction.FarmerId == farmerId.Value)
+            || (buyerId.HasValue && transaction.BuyerId == buyerId.Value);
+    }
+
+    private async Task<bool> CanAccessAsync(int userId, TransportBooking booking)
+    {
+        if (User.IsInRole("Admin")) return true;
+        return await IsParticipantAsync(userId, booking.Transaction);
     }
 }

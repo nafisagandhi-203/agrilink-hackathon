@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Data;
@@ -12,6 +13,7 @@ namespace Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class TransportProvidersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -83,6 +85,7 @@ public class TransportProvidersController : ControllerBase
 
     // POST: api/TransportProviders
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<TransportProviderDto>>> CreateTransportProvider([FromBody] TransportProviderDto request)
     {
         var provider = new TransportProvider
@@ -104,5 +107,48 @@ public class TransportProvidersController : ControllerBase
         request.TransportProviderId = provider.TransportProviderId;
         return CreatedAtAction(nameof(GetTransportProvider), new { id = provider.TransportProviderId },
             ApiResponse<TransportProviderDto>.SuccessResponse(request, "Transport provider created successfully"));
+    }
+
+    // PUT: api/TransportProviders/5
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<TransportProviderDto>>> UpdateTransportProvider(int id, [FromBody] TransportProviderDto request)
+    {
+        var provider = await _context.TransportProviders.FindAsync(id);
+        if (provider == null)
+            return NotFound(ApiResponse<TransportProviderDto>.ErrorResponse("Transport provider not found"));
+
+        provider.Name = request.Name;
+        provider.PhoneNumber = request.PhoneNumber;
+        provider.VehicleType = request.VehicleType;
+        provider.VehicleNumber = request.VehicleNumber;
+        provider.VehicleCapacity = request.VehicleCapacity;
+        provider.ServiceArea = request.ServiceArea;
+        provider.Rating = request.Rating > 0 ? request.Rating : provider.Rating;
+        provider.IsAvailable = request.IsAvailable;
+
+        await _context.SaveChangesAsync();
+
+        request.TransportProviderId = provider.TransportProviderId;
+        return Ok(ApiResponse<TransportProviderDto>.SuccessResponse(request, "Transport provider updated successfully"));
+    }
+
+    // DELETE: api/TransportProviders/5
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteTransportProvider(int id)
+    {
+        var provider = await _context.TransportProviders.FindAsync(id);
+        if (provider == null)
+            return NotFound(ApiResponse<object>.ErrorResponse("Transport provider not found"));
+
+        var hasBookings = await _context.TransportBookings.AnyAsync(b => b.TransportProviderId == id);
+        if (hasBookings)
+            return BadRequest(ApiResponse<object>.ErrorResponse("This provider has booking history and cannot be deleted."));
+
+        _context.TransportProviders.Remove(provider);
+        await _context.SaveChangesAsync();
+
+        return Ok(ApiResponse<object>.SuccessResponse(null, "Transport provider deleted successfully"));
     }
 }

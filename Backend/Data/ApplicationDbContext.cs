@@ -216,6 +216,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<CropListing>().HasIndex(cl => cl.Status);
         modelBuilder.Entity<CropListing>().HasIndex(cl => new { cl.State, cl.District });
         modelBuilder.Entity<CropListing>().HasIndex(cl => cl.ExpectedSellingDate);
+        modelBuilder.Entity<CropListing>().Property(cl => cl.ImageUrl).HasMaxLength(500).IsRequired(false);
 
         modelBuilder.Entity<Buyer>().HasIndex(b => b.UserId);
         modelBuilder.Entity<Buyer>().HasIndex(b => new { b.State, b.District });

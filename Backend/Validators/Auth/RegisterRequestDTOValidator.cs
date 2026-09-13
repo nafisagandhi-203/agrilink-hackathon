@@ -13,7 +13,8 @@ public class RegisterRequestDTOValidator : AbstractValidator<RegisterRequestDTO>
         RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
         RuleFor(x => x.Role)
             .NotEmpty()
-            .Must(r => r == "Farmer" || r == "Buyer")
+            .Must(r => string.Equals(r, "Farmer", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(r, "Buyer", StringComparison.OrdinalIgnoreCase))
             .WithMessage("Role must be either 'Farmer' or 'Buyer'.");
     }
 }
